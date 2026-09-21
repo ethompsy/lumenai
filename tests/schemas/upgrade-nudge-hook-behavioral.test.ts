@@ -359,7 +359,13 @@ describe.each(variants)(
     });
 
     describe('NFR-UO1 / NFR-UO2 timing budgets (Task 26)', () => {
-      it('NFR-UO1: steady-state p95 ≤ 50 ms over 30 invocations', () => {
+      // `retry` is for suite contention, not for a slow hook: these tests
+      // measure wall-clock time of 30+ spawned subprocesses while vitest runs
+      // the rest of the suite in parallel, so a single scheduling outlier can
+      // push p95 over budget on an otherwise healthy script. The budgets below
+      // are unchanged — a genuinely slow hook still exceeds them on every
+      // attempt and fails.
+      it('NFR-UO1: steady-state p95 ≤ 50 ms over 30 invocations', { retry: 2 }, () => {
         mkdirSync(join(projectDir, variant.stateDir), { recursive: true });
         writeStateJson(projectDir, variant.stateDir, {
           last_seen_version: currentVersion,
@@ -386,7 +392,7 @@ describe.each(variants)(
         expect(p95).toBeLessThan(75);
       });
 
-      it('NFR-UO2: cold path (upgrade + nudge) ≤ 200 ms', () => {
+      it('NFR-UO2: cold path (upgrade + nudge) ≤ 200 ms', { retry: 2 }, () => {
         mkdirSync(join(projectDir, variant.stateDir), { recursive: true });
         writeStateJson(projectDir, variant.stateDir, {
           last_seen_version: variant.preThresholdVersion,
