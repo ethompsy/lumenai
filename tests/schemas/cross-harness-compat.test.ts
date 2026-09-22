@@ -37,8 +37,8 @@ describe('cross-harness compatibility contract', () => {
   it('derives a unique portable skill for every command and agent', () => {
     const entries = readExpectedEntrypoints(pluginRoot);
 
-    expect(entries.filter(({ kind }) => kind === 'command')).toHaveLength(18);
-    expect(entries.filter(({ kind }) => kind === 'agent')).toHaveLength(28);
+    expect(entries.filter(({ kind }) => kind === 'command')).toHaveLength(19);
+    expect(entries.filter(({ kind }) => kind === 'agent')).toHaveLength(30);
     expect(new Set(entries.map(({ id }) => id)).size).toBe(entries.length);
   });
 
@@ -237,8 +237,8 @@ describe('cross-harness compatibility contract', () => {
       });
       const reviewProbe = probes.find(({ id }) => id === 'review-code');
 
-      expect(probes).toHaveLength(46);
-      expect(new Set(probes.map(({ token }) => token)).size).toBe(46);
+      expect(probes).toHaveLength(49);
+      expect(new Set(probes.map(({ token }) => token)).size).toBe(49);
       expect(reviewProbe?.token).toBe(
         'SYNTHEX_COMPAT_unit_COMMAND_REVIEW_CODE',
       );
