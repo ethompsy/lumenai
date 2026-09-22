@@ -132,6 +132,18 @@ The primary benefit: catching correlated-error blind spots — bugs and issues t
 
 See [`docs/specs/multi-model-review/architecture.md`](docs/specs/multi-model-review/architecture.md) for the full design and [`docs/specs/multi-model-review/adapter-recipes.md`](docs/specs/multi-model-review/adapter-recipes.md) for per-adapter setup.
 
+## Notion Backend
+
+Synthex's documents — PRDs, implementation plans, ADRs, RFCs, runbooks, retrospectives — and its implementation-plan task state can live in Notion instead of local markdown, so product managers, designers, and stakeholders can read and track the work in the tool they already use.
+
+The design commitment is **bolt-on compatibility**. Synthex points at a Notion page and a task database that already exist, creates its documents as children of that page, writes task rows into that database, and maps onto whatever properties the database already has. Every row it creates carries a workstream identifier and every query filters on it, so Synthex coexists with other teams' work in a shared database without ever reading or modifying rows that aren't its own. It never restructures a workspace and never changes a database schema without explicit consent.
+
+**Off by default.** Opt in via `/synthex:configure-notion` (or the matching `/synthex:init` step). When disabled, behavior is byte-identical to pre-Notion Synthex. Access is through the Notion MCP server — Synthex holds no Notion API key and sends no source code.
+
+You choose which document types go to Notion; a common split puts requirements, plans, and retrospectives there while leaving specs and ADRs on local disk, since `review-code` reads those on every invocation.
+
+See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for setup and [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design.
+
 ## Native Looping
 
 Synthex 0.8+ ships a native `--loop` flag on iteration-friendly commands (`next-priority`, `write-implementation-plan`, `refine-requirements`, `review-code`, and all four Synthex+ team commands), plus a generic `/synthex:loop` for arbitrary prompts. Loops iterate in the same agent thread by default (auto-compaction handles the context window) and persist per-session state at `.synthex/loops/<loop-id>.json` for resume across sessions. See [`plugins/synthex/docs/native-looping.md`](plugins/synthex/docs/native-looping.md) for the full framework spec.

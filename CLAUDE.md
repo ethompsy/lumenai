@@ -34,7 +34,8 @@ lumenai/
 │   ├── plans/                  # Implementation plans
 │   │   └── main.md             # Primary implementation plan
 │   ├── specs/
-│   │   └── multi-model-teams/  # Multi-model team pool specifications (architecture, lifecycle, routing, recovery)
+│   │   ├── multi-model-teams/  # Multi-model team pool specifications (architecture, lifecycle, routing, recovery)
+│   │   └── notion-backend/     # Notion document & task backend (architecture, setup)
 │   ├── agent-interactions.md   # Agent interaction map and orchestration flows
 │   └── research-sources.md     # Research sources behind agent designs
 ├── CLAUDE.md                   # This file
@@ -157,13 +158,16 @@ Narrow-scope agents that let expensive Opus/Sonnet agents delegate mechanical wo
 | `codex-review-prompter` | Haiku-backed; OpenAI Codex CLI adapter for multi-model review (`agentic` tier; family `openai`) | Utility |
 | `gemini-review-prompter` | Haiku-backed; Google Gemini CLI adapter for multi-model review (`agentic` tier; family `google`) | Utility |
 | `ollama-review-prompter` | Haiku-backed; local Ollama HTTP API adapter for multi-model review (`text-only` tier; family `local-<model>`) | Utility |
+| `notion-document-store` | Haiku-backed; implements the document operations of the document-store contract against Notion via MCP (prose documents: PRDs, plan overviews, ADRs, RFCs, runbooks, retros) | Utility |
+| `notion-task-store` | Haiku-backed; implements the task operations against an existing Notion database. Enforces workstream scoping (FR-NB4) and property mapping with graceful degradation (FR-NB5) | Utility |
 
 ## Commands
 
 | Command | Purpose | Agents Orchestrated |
 |---------|---------|-------------------|
-| `init` | Initialize project configuration and directories. During first-run, delegates the "Configure Multi-Model Review (optional)" sub-step to `/synthex:configure-multi-model` per FR-UO3. | — |
+| `init` | Initialize project configuration and directories. During first-run, delegates the "Configure Multi-Model Review (optional)" sub-step to `/synthex:configure-multi-model` per FR-UO3, and the "Configure Notion Backend (optional)" sub-step to `/synthex:configure-notion` per FR-NB6. Neither sub-step can abort `init`. | — |
 | `configure-multi-model` | Re-runnable wizard for the `multi_model_review` config block. Detects installed CLIs, runs auth checks, surfaces 3 options (Enable with detected / Enable later / Skip), and shows FR-MR27 data-transmission warning. Idempotent — re-entering when already enabled offers Re-run / Reset to disabled / Leave as-is. | — |
+| `configure-notion` | Re-runnable wizard for the `documents.backend*` and `notion` config blocks. Points Synthex at an **existing** Notion page and task database, discovers the database's real schema, maps properties, sets the workstream identifier, and shows the FR-NB8 data-transmission warning. Idempotent — re-entering when enabled offers Re-run / Reset to disabled / Leave as-is. Refuses to configure tasks unscoped. | — |
 | `dismiss-upgrade-nudge` | Silence the SessionStart upgrade nudge for this project by writing `dismissed: true` to `.synthex/state.json`. Idempotent; no arguments. | — |
 | `loop` | Generic native-looping primitive. Loops an arbitrary prompt (literal `--prompt` or `--prompt-file <path>`) until the completion promise is emitted or `--max-iterations` is reached. Per-session state at `.synthex/loops/<loop-id>.json`; supports `--resume <id>` / `--resume-last`. | — |
 | `list-loops` | Enumerate running and recent terminal-status loops in `.synthex/loops/`. Read-only. Output format: `RUNNING (N)` + `COMPLETED (M)` blocks sorted by recency. | — |
@@ -204,6 +208,14 @@ Synthex Plus extends Synthex with multi-model team orchestration, standing revie
 | `dismiss-upgrade-nudge` | Silence the synthex-plus SessionStart upgrade nudge for this project by writing `dismissed: true` to `.synthex-plus/state.json`. Idempotent; no arguments. | — |
 
 See `docs/specs/multi-model-teams/` for pool specifications.
+
+## Notion Backend
+
+Synthex's documents and implementation-plan task state can be routed into an **existing** Notion workspace instead of local markdown. Off by default (`notion.enabled: false`); when disabled, behavior is byte-identical to pre-Notion Synthex (FR-NB2).
+
+The design commitment is bolt-on compatibility: Synthex roots documents under a page you nominate, writes task rows into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a workstream identifier so it coexists with other teams' work. It never restructures a workspace and never changes a database schema without explicit consent. Access is via the Notion MCP server — Synthex holds no Notion API key.
+
+Run `/synthex:configure-notion` to set it up. See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for the setup guide, [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design, and [`plugins/synthex/agents/_shared/document-store-contract.md`](plugins/synthex/agents/_shared/document-store-contract.md) for the normative contract.
 
 ## Project Configuration Framework
 
@@ -280,6 +292,15 @@ See `plugins/synthex/config/defaults.yaml` for the full reference. Key settings:
 | `documents.requirements` | `docs/reqs/main.md` | Default PRD path |
 | `documents.implementation_plan` | `docs/plans/main.md` | Default plan path |
 | `documents.specs` | `docs/specs` | Specs directory |
+| `documents.backend` | `filesystem` | Global document backend: `filesystem` or `notion` |
+| `documents.backend_overrides` | `{}` | Per-document-type backend override map. Resolution: override > global > `filesystem` |
+| `notion.enabled` | `false` | Master switch for the Notion backend. When false, behavior is byte-identical to pre-Notion Synthex (FR-NB2) |
+| `notion.strict_mode` | `false` | `false` falls back to filesystem on error; `true` aborts |
+| `notion.docs_root` | `null` | Existing Notion page to create document pages under |
+| `notion.tasks_database` | `null` | Existing Notion database to write task rows into |
+| `notion.workstream` | `{property: null, value: null}` | Scopes every row Synthex reads or writes. Required for tasks — Synthex refuses to run unscoped |
+| `notion.property_map` | `{}` | Canonical task field → the target database's property name |
+| `notion.status_values` | `{}` | Canonical task state → the target database's option name |
 
 ### Design Pattern
 
@@ -367,7 +388,9 @@ Every testable agent has a schema validator and a corresponding test suite with 
 | ux-researcher | `ux-researcher.ts` | 17 | -- | 5 artifact types, evidence basis, confidence levels |
 | technical-writer | `technical-writer.ts` | 17 | -- | 6 document types, section structure per type |
 
-**Total: 206 tests, 13 test suites, 0 failures.**
+**Total: ~4,460 tests across ~146 test files, 0 failures.**
+
+> The per-agent counts in the table above cover the original 13 schema validators only. The suite has grown well beyond them (multi-model review, multi-model teams, native looping, upgrade onboarding, cross-harness compatibility, and the Notion backend all add their own suites). Treat "no regressions against the pre-change run" as the bar rather than a fixed number, and re-measure with `npx vitest run schemas/` rather than trusting this line.
 
 ### Running Tests
 
