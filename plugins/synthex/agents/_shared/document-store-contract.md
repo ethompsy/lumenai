@@ -60,15 +60,39 @@ A `handle` is opaque. Callers MUST NOT parse it or construct one by hand.
 - `filesystem` backend: a repo-relative path (`docs/plans/main.md`)
 - `notion` backend: a page ID
 
+### Document scope: epic-scoped vs cross-cutting
+
+Document types divide along a line that predates this feature: some belong to a single initiative, others outlive every initiative.
+
+| Scope | Document types | Anchored to |
+|-------|---------------|-------------|
+| **Epic-scoped** | `requirements`, `implementation_plan`, `retros` | the workstream's own page |
+| **Cross-cutting** | `specs`, `decisions`, `rfcs`, `runbooks` | `notion.docs_root`, or the filesystem |
+
+In Notion every row of a database is itself a page and can contain subpages, so when the workstream is a row in an epics database, that row is the natural anchor for the initiative's documents. Its PRD, plan, and retrospectives become subpages of it, and its work items relate to it — one entry point for everything about that initiative, with nothing for a reader to navigate between.
+
+Cross-cutting documents have no such anchor and resolve against `notion.docs_root`. They default to the `filesystem` backend, because Synthex itself reads them on every review invocation and they are engineering-internal.
+
 ### Target resolution
 
 `resolve` locates a document type's page in this order, first match wins:
 
 1. An explicit `ref` supplied by the caller
-2. `notion.targets.<doc_type>` — a map of resolved page IDs that `configure-notion` writes as it nominates or creates each target. This is the deterministic path, and it survives the page being renamed.
-3. A child of `notion.docs_root` whose title matches the document type's conventional name
+2. `notion.targets.<doc_type>` — resolved page IDs that `configure-notion` writes as it nominates or creates each target. Deterministic, and survives the page being renamed.
+3. **Epic-scoped types:** a subpage of the resolved workstream page whose title matches the type's conventional name
+4. **Cross-cutting types:** a child of `notion.docs_root` whose title matches
 
-Step 3 is a convenience for targets the wizard has not recorded yet. It MUST fail with `target_not_found` rather than choose when more than one child matches — silently reading the wrong PRD is worse than failing.
+Conventional subpage titles for epic-scoped types:
+
+| Document type | Title |
+|---------------|-------|
+| `requirements` | `Product Requirements` |
+| `implementation_plan` | `Implementation Plan` |
+| `retros` | `Retrospective <YYYY-MM-DD>` — dated, since retrospectives accumulate; `list` returns them newest first |
+
+Steps 3 and 4 MUST fail with `target_not_found` rather than choose when more than one candidate matches. Silently reading the wrong PRD is worse than failing.
+
+An epic-scoped `resolve` requires a resolved workstream (§4). Without one it fails `schema_mismatch` — there is no anchor to resolve against, and falling back to `docs_root` would silently mix one initiative's documents into another's.
 
 ### `version`
 
@@ -165,6 +189,50 @@ Binding the value to the plan is what makes targeting the wrong initiative struc
 **Callers resolve the value; adapters do not.** A command already reads the plan, so it extracts the value and passes it in the `workstream` config it hands the task store. The task store never reads plan documents — it validates that both `property` and `value` are present and refuses otherwise (§4, rule 1). The adapter's input contract is unchanged by this.
 
 Under the `filesystem` backend the line is still written, and is inert. Keeping both backends' plan documents identical in shape means a plan can move between them without rewriting, and a plan authored locally already carries what the Notion backend will need.
+
+`**Epic:**` is accepted as a synonym for the label, since teams whose workstreams are epics write it that way. `**Workstream:**` is canonical because the contract is backend-neutral — a future tracker may not call them epics.
+
+### Resolving the workstream reference
+
+The value must resolve to whatever the scoping property can actually be filtered on, and that depends on the property's type.
+
+| Property type | Filter value must be | So the plan's value is |
+|---------------|---------------------|------------------------|
+| `relation` | a page **UUID** | a link or URL carrying the workstream page's id |
+| `select`, `multi_select`, `status`, text | the option or string itself | the plain name |
+
+**Notion cannot filter a relation by page name.** A plan naming its epic as bare text against a relation property filters on nothing and returns an empty result set — which is indistinguishable from "this initiative has no work left." That failure is silent and wrong in the most damaging direction, so it MUST be prevented rather than tolerated.
+
+Accordingly, when the scoping property is a `relation`, resolve the plan's value in this order:
+
+1. A markdown link — `[Billing Migration](https://www.notion.so/<id>)` — take the id from the URL. **Preferred**: one line carrying a label for people and an id for the filter.
+2. A bare Notion URL, or a bare UUID — take the id directly.
+3. A plain name — perform exactly **one** title lookup against `notion.epics_database`. Accept only a unique exact match. Zero matches or more than one MUST fail `schema_mismatch` naming the ambiguity.
+
+Step 3 exists so plans written before the link convention still work. It is a convenience, not a fallback to guessing: an ambiguous name fails rather than picking a candidate.
+
+A resolved reference MUST NOT be invented from a filename, branch, page title, or any other incidental string (§4 applies).
+
+### Assignee scoping
+
+A shared work database usually carries work for many engineers within the same initiative, so workstream scoping alone can still collide: two engineers running Synthex against one epic could select the same item.
+
+When `notion.assignee.property` is configured, task queries MUST additionally scope to work the invoking engineer may legitimately take:
+
+> assigned to **me**, **or** unassigned
+
+Unassigned items are claimable; items assigned to someone else are not. Expressed as a filter, this is the workstream predicate ANDed with a nested `or` of `person_contains me` and `is_empty`.
+
+Two behaviors make the claim real rather than advisory:
+
+- **`create_tasks` leaves new items unassigned.** A planned task is available work, not work already owned.
+- **`update_task_status` to `in_progress` claims the item** by setting the assignee to the current user, when the property is mapped and the item is currently unassigned. This is what closes the collision: once claimed, another engineer's query excludes it, because it is neither theirs nor unassigned.
+
+Claiming is the only property beyond status that a status transition may write, and only under those two conditions. It is load-bearing — without it, "unassigned is claimable" lets two engineers claim the same item simultaneously.
+
+The current user is resolved at runtime from the MCP, so no configuration identifies the engineer.
+
+When `notion.assignee.property` is null, assignee scoping is skipped entirely and workstream scoping alone applies. That is correct for an epic effectively owned by one engineer, and it is the documented cost of leaving it unset.
 
 ---
 

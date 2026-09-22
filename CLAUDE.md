@@ -215,7 +215,13 @@ Synthex's documents and implementation-plan task state can be routed into an **e
 
 The design commitment is bolt-on compatibility: Synthex roots documents under a page you nominate, writes task rows into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a workstream identifier so it coexists with other teams' work. It never restructures a workspace and never changes a database schema without explicit consent. Access is via the Notion MCP server — Synthex holds no Notion API key.
 
-Each implementation plan carries its own workstream value on a `**Workstream:**` line beneath its H1, so a repository running several initiatives concurrently keeps them cleanly separated — a command cannot touch task rows without having read the plan those rows belong to.
+The workspace model is two related databases: **epics** (one row per initiative) and the **work items** they break down into. Because every Notion database row is itself a page, the epic row anchors both halves — its requirements, plan, and retrospectives become subpages of it, and its work items relate to it.
+
+Each implementation plan names its own epic on a `**Workstream:**` line beneath its H1, written as a markdown link so the line carries both a label and the page id a relation filter needs. A repository running several initiatives concurrently therefore keeps them cleanly separated: a command cannot touch work items without having read the plan those items belong to.
+
+Scoping has a second dimension. When `notion.assignee.property` is set, Synthex acts only on work **assigned to the current user or unassigned**, and claims an item by assigning it when it moves to `in_progress` — so several engineers can work one epic without selecting the same item. Items another engineer holds are never read, modified, or reassigned.
+
+Documents split by scope: `requirements`, `implementation_plan`, and `retros` are epic-scoped; `specs`, `decisions`, `rfcs`, and `runbooks` are cross-cutting and default to the filesystem, since `review-code` reads them on every invocation.
 
 Run `/synthex:configure-notion` to set it up. See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for the setup guide, [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design, and [`plugins/synthex/agents/_shared/document-store-contract.md`](plugins/synthex/agents/_shared/document-store-contract.md) for the normative contract.
 
@@ -298,8 +304,11 @@ See `plugins/synthex/config/defaults.yaml` for the full reference. Key settings:
 | `documents.backend_overrides` | `{}` | Per-document-type backend override map. Resolution: override > global > `filesystem` |
 | `notion.enabled` | `false` | Master switch for the Notion backend. When false, behavior is byte-identical to pre-Notion Synthex (FR-NB2) |
 | `notion.strict_mode` | `false` | `false` falls back to filesystem on error; `true` aborts |
-| `notion.docs_root` | `null` | Existing Notion page to create document pages under |
-| `notion.tasks_database` | `null` | Existing Notion database to write task rows into |
+| `notion.epics_database` | `null` | Existing Notion database whose rows are epics/initiatives. Each row is a page, so it anchors that initiative's documents as subpages |
+| `notion.tasks_database` | `null` | Existing Notion database holding the work items epics break down into |
+| `notion.docs_root` | `null` | Existing page rooting **cross-cutting** documents (specs, ADRs, RFCs, runbooks). Epic-scoped documents ignore it |
+| `notion.assignee.property` | `null` | Person property on the work database. When set, Synthex acts only on items assigned to the current user or unassigned, and claims an item when it starts one |
+| `notion.assignee.include_unassigned` | `true` | Whether unassigned items are claimable |
 | `notion.targets` | `{}` | Resolved page ID per document type, written by the wizard. Deterministic and survives a page rename |
 | `notion.workstream.property` | `null` | Database property used to scope every row Synthex reads or writes. Required for tasks — Synthex refuses to run unscoped |
 | `notion.workstream.value` | `null` | **Default only.** Each implementation plan declares its own workstream on a `**Workstream:**` line beneath its H1, which takes precedence. Multi-initiative repos should leave this null so a plan can never inherit another epic's identifier |

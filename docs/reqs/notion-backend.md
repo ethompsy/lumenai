@@ -33,7 +33,12 @@ Meanwhile those same people already have a place they track work: Notion.
 | **Backend** | The storage implementation serving a document type. Two exist: `filesystem` (local markdown — today's behavior) and `notion`. |
 | **Document type** | One of the keys of the `documents` config block: `requirements`, `implementation_plan`, `specs`, `decisions`, `rfcs`, `runbooks`, `retros`. Backend is resolved per document type. |
 | **Document store contract** | The normative operations envelope both backends implement, at `plugins/synthex/agents/_shared/document-store-contract.md`. Commands speak this instead of naming filesystem paths. |
-| **Docs root** | An existing Notion page that Synthex creates its document pages beneath. Synthex adds children and never reorganizes what is already there. |
+| **Epics database** | An existing Notion database whose rows are epics or initiatives. Every row is itself a page, so it anchors that initiative's documents as subpages. |
+| **Work database** | An existing Notion database holding the work items epics break down into, related back to their epic. Where Synthex writes task rows. |
+| **Epic-scoped document** | A document belonging to one initiative — `requirements`, `implementation_plan`, `retros`. Resolves to a subpage of that initiative's epic row. |
+| **Cross-cutting document** | A document that outlives any single initiative — `specs`, `decisions`, `rfcs`, `runbooks`. Has no epic anchor; resolves against the docs root, and defaults to the filesystem. |
+| **Assignee scoping** | A second scoping dimension within an epic: Synthex acts only on work assigned to the invoking engineer or unassigned, and claims an item when it starts one. |
+| **Docs root** | An existing Notion page rooting cross-cutting documents. Synthex adds children and never reorganizes what is already there. |
 | **Tasks database** | An existing Notion database that Synthex writes implementation-plan task rows into, alongside whatever else the team tracks there. |
 | **Workstream identifier** | A property/value pair scoping every row Synthex creates and every query it issues, so Synthex cannot see or modify tickets belonging to other workstreams. |
 | **Property map** | Mapping from Synthex's canonical task fields onto the target database's actual property names. Three fields are required; the rest degrade. |
@@ -68,7 +73,15 @@ The implementation guarantee is stronger than "produces the same result": comman
 
 The contract defines six operations for prose documents: `resolve`, `read`, `write`, `patch`, `create`, `list`. Handles are opaque; callers MUST NOT parse or construct them.
 
-Targets resolve in the order: explicit caller `ref` → `notion.targets.<doc_type>` (written by the wizard as it nominates or creates each page; deterministic and survives a rename) → a title-matched child of `notion.docs_root`, which MUST fail rather than choose when several match.
+**Document types divide by scope.** `requirements`, `implementation_plan`, and `retros` belong to one initiative and are **epic-scoped**: they resolve to subpages of that initiative's epic row. Every row of a Notion database is itself a page that can hold subpages, so the epic row is the natural anchor — its requirements, plan, and retrospectives sit beneath it, and its work items relate to it, giving one entry point for the whole initiative.
+
+`specs`, `decisions`, `rfcs`, and `runbooks` are **cross-cutting**: they outlive every initiative, have no epic anchor, and resolve against `notion.docs_root`. They default to the `filesystem` backend because Synthex reads them on every review invocation and they are engineering-internal.
+
+Targets resolve in the order: explicit caller `ref` → `notion.targets.<doc_type>` (written by the wizard for cross-cutting types; deterministic and survives a rename) → for epic-scoped types, a conventionally-titled subpage of the resolved epic row → for cross-cutting types, a title-matched child of `notion.docs_root`. Any title match MUST fail rather than choose when several match.
+
+An epic-scoped resolve without a resolved epic MUST fail `schema_mismatch`. It MUST NOT fall back to the docs root, which would file one initiative's document into a shared page or resolve onto another initiative's identically-titled one.
+
+When the scoping property is a `select` or text type rather than a relation, there is no epic page and epic anchoring is unavailable — anchoring needs a page, and a tag is not a page. Those types fall back to the docs root or the filesystem, and the wizard MUST say so rather than offering a choice it cannot honor.
 
 `patch` is section-scoped and MUST be preferred over `write` whenever a change is localized, because a full-document `write` discards a human's concurrent edits to sections Synthex never intended to touch. A person editing a Notion page while Synthex works is routine.
 
@@ -89,6 +102,23 @@ Configuration MUST NOT be able to produce an unscoped task setup. Where no works
 Every implementation plan therefore records its own value on a `**Workstream:**` line beneath its H1. Resolution order for the value: the plan's line (authoritative) → `notion.workstream.value` (a default for plans that do not declare one) → `schema_mismatch`.
 
 Binding the value to the plan makes targeting the wrong initiative structurally impossible rather than merely discouraged: a command cannot query or write task rows without having read the plan those rows belong to, and that plan names its workstream. There is no flag to forget and no config entry to drift. A value MUST NOT be derived from a filename, branch, or title — a derived value matching no rows returns an empty queue, which is indistinguishable from "all work complete".
+
+**The value must resolve to what the property can filter on.** When the scoping property is a `relation`, the filter value is a page UUID: **Notion cannot filter a relation by page name.** A plan naming its epic as bare text against a relation property filters on nothing, and that failure points in the most damaging direction — an empty result set reads as "this initiative has no work left." Resolution order: a markdown link carrying the page id (preferred, since one line serves both people and the filter) → a bare URL or UUID → a unique exact title match in `notion.epics_database`, failing `schema_mismatch` on zero or several matches. For `select`, `status`, and text properties the value is used as given.
+
+**Assignee scoping (second dimension).** Several engineers commonly share one epic, so workstream scoping alone still collides: two of them running Synthex against the same initiative could select the same item.
+
+When `notion.assignee.property` is configured, task queries MUST additionally scope to work the invoking engineer may legitimately take — **assigned to them, or unassigned**. Items assigned to anyone else MUST NOT be selected, modified, or reported.
+
+Two behaviors make the claim real rather than advisory:
+
+- `create_tasks` MUST leave new items unassigned. A planned task is available work, not work already owned.
+- `update_task_status` to `in_progress` MUST claim the item by assigning it to the current user, when the property is mapped and the item is currently unassigned. This is what closes the collision: once claimed, another engineer's query excludes it.
+
+Claiming is the only property beyond status a status transition may write, and only under those conditions. An item that already has an assignee MUST NOT be reassigned, and an assignee MUST NOT be cleared.
+
+The current user is resolved from the MCP at runtime; no configuration identifies the engineer, and an identity MUST NOT be accepted from the caller.
+
+Assignee scoping is optional. When unset, workstream scoping alone applies — correct for an epic owned by one engineer at a time, and the documented cost of leaving it unset. Because a claimed item is excluded from a query, a queue containing only other engineers' work is **not** completion: commands MUST report it as work remaining rather than emitting a completion signal.
 
 ### FR-NB5: Property mapping and graceful degradation
 
@@ -154,6 +184,7 @@ Two exceptions: a workstream-scoping failure never degrades to an unscoped query
 ## 6. Out of Scope
 
 - **Bidirectional sync.** A document type resolves to one backend. There is no reconciliation of divergent copies, because conflict resolution between two writable stores is a large problem that this feature does not need to solve.
+- **Authoring epics.** Synthex links to epic rows that already exist. It creates one only on explicit request, and then only with a title — an epics row typically carries owner, dates, and business context Synthex has no basis to populate.
 - **Migrating existing content.** No bulk import of local markdown into Notion, or the reverse.
 - **Notion as a code store.** Source code stays in git. Only documents and task metadata are transmitted.
 - **Other trackers.** Jira, Linear, and Asana are out of scope, though the document-store contract is deliberately backend-neutral so a future adapter need not disturb the commands.
@@ -166,7 +197,8 @@ Two exceptions: a workstream-scoping failure never degrades to an unscoped query
 | Metric | Target |
 |--------|--------|
 | Disabled-path regression | Byte-identical to pre-Notion baselines; zero diffs |
-| Rows outside the configured workstream modified in any run | Zero |
+| Rows outside the resolved initiative modified in any run | Zero |
+| Items claimed by another engineer read into a queue or modified | Zero |
 | Existing database schemas altered without explicit consent | Zero |
 | Setup completed against an existing page and database without restructuring the workspace | The expected path, not the exception |
 | Degradations surfaced to the user rather than silent | 100% |
@@ -196,5 +228,5 @@ Two exceptions: a workstream-scoping failure never degrades to an unscoped query
 | # | Question | Status |
 |---|----------|--------|
 | Q1 | When a task row is deleted in Notion but still present in the local plan, is that a deletion to honor or drift to report? Reporting is the safer default. | Open |
-| Q2 | Should `specs` default to `filesystem` even under a global `backend: notion`, given `review-code` reads specs on every invocation? | Open |
+| Q2 | Should `specs` default to `filesystem` even under a global `backend: notion`, given `review-code` reads specs on every invocation? | **Resolved** — yes. `specs`, `decisions`, `rfcs`, and `runbooks` are cross-cutting and default to `filesystem`; only the epic-scoped three are routed to Notion by default. See FR-NB3. |
 | Q3 | Is one workstream value per project sufficient, or do multi-initiative repositories need a value per plan document? | **Resolved** — per plan document. One value per project collides as soon as a repository runs two initiatives at once, which is the common case. Each plan carries its own value on a `**Workstream:**` line; `notion.workstream.value` remains a default for single-initiative projects. See FR-NB4. |

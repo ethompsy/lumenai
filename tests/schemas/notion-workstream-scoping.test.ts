@@ -79,18 +79,35 @@ describe('FR-NB4: workstream scoping', () => {
 
     it('requires a workstream filter on list_tasks', () => {
       expect(taskStore).toMatch(
-        /list_tasks.*Filter MUST include `workstream\.property = workstream\.value`/s,
+        /list_tasks.*Filter MUST include the workstream predicate/s,
       );
     });
 
-    it('requires stamping on create_tasks', () => {
-      expect(taskStore).toMatch(/create_tasks.*MUST be stamped with the workstream value/s);
+    it('documents the concrete filter shape it must build', () => {
+      // One nested group level is exactly what the structured filter supports,
+      // so the shape is worth pinning rather than leaving to interpretation.
+      const shape = taskStore.split('#### Filter shape')[1]?.split('####')[0] ?? '';
+      expect(shape).toMatch(/relation_contains/);
+      expect(shape).toMatch(/person_contains\s+me/);
+      expect(shape).toMatch(/is_empty/);
+      expect(shape).toMatch(/Omit the `or` group entirely when assignee scoping is skipped/);
+    });
+
+    it('requires create_tasks to link the workstream and leave items unassigned', () => {
+      expect(taskStore).toMatch(/create_tasks.*MUST be linked to the workstream, and left \*\*unassigned\*\*/s);
+      expect(taskStore).toMatch(/a planned task is available work, not work already owned/);
     });
 
     it('requires pre-write verification on both mutating operations', () => {
-      expect(taskStore).toMatch(/update_task_status.*MUST verify the row carries the workstream value first/s);
-      expect(taskStore).toMatch(/annotate_task.*MUST verify the row carries the workstream value first/s);
+      expect(taskStore).toMatch(/update_task_status.*MUST verify the row's workstream and assignee eligibility first/s);
+      expect(taskStore).toMatch(/annotate_task.*MUST verify the row's workstream and assignee eligibility first/s);
       expect(taskStore).toMatch(/Verify before every write/);
+    });
+
+    it('explains why a query-time filter is not enough for writes', () => {
+      expect(taskStore).toMatch(
+        /may have been claimed by another engineer in between, and a filter applied at query time cannot see that/,
+      );
     });
 
     it('returns permission_denied on a workstream mismatch and writes nothing', () => {
@@ -126,8 +143,8 @@ describe('FR-NB4: workstream scoping', () => {
     it('tells the user the guarantee in the confirmation output', () => {
       // The user should finish the wizard knowing what Synthex will and will
       // not touch.
-      expect(wizard).toMatch(/only touches task rows tagged/);
-      expect(wizard).toMatch(/other rows are never queried or modified/);
+      expect(wizard).toMatch(/only takes work assigned to you or unassigned/);
+      expect(wizard).toMatch(/never selected or modified/);
     });
 
     it('asks only for an optional default value, not a mandatory one', () => {
@@ -196,13 +213,13 @@ describe('FR-NB4: workstream scoping', () => {
     });
 
     it('task store refuses when the caller omits the value', () => {
-      expect(taskStore).toMatch(/You do not resolve the value yourself/);
+      expect(taskStore).toMatch(/You do not read plan documents/);
       expect(taskStore).toMatch(/a caller trying to run unscoped, whatever the reason/);
     });
 
     it('shared mechanics tell commands to resolve from the plan first', () => {
-      expect(sharedDoc).toMatch(/Resolve the workstream value from the plan — before touching any task/);
-      expect(sharedDoc).toMatch(/resolving the value is the caller's job/);
+      expect(sharedDoc).toMatch(/^### Step A — read the plan and take its reference$/m);
+      expect(sharedDoc).toMatch(/Resolution is the caller's job/);
     });
 
     it('a plan-declared value beats config, with the discrepancy surfaced', () => {
@@ -222,7 +239,7 @@ describe('FR-NB4: workstream scoping', () => {
     });
 
     it('next-priority resolves the value before any task operation', () => {
-      expect(nextPriority).toMatch(/Resolve the workstream value from the plan first/);
+      expect(nextPriority).toMatch(/Resolve the workstream reference from the plan first/);
       expect(nextPriority).toMatch(/plan-complete check would never fire/);
     });
 

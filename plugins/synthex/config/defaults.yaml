@@ -514,18 +514,31 @@ notion:
   # (see `workstream` below) and a missing required property mapping.
   strict_mode: false
 
-  # An EXISTING Notion page to create Synthex's document pages under, as a URL
-  # or page ID. Synthex adds children beneath it and never reorganizes,
-  # renames, or moves anything already there.
-  # If null, `/synthex:configure-notion` offers to create a page — that is the
-  # fallback for teams starting fresh, not the expected path.
-  docs_root: null
+  # An EXISTING Notion database whose rows are your epics or initiatives, as a
+  # URL or database ID. Every row in a Notion database is itself a page that
+  # can hold subpages, so Synthex hangs each initiative's documents — its PRD,
+  # implementation plan, and retrospectives — beneath that initiative's own
+  # row. The row becomes the single entry point for everything about it.
+  # Synthex links to rows you already have; it offers to create one only when
+  # you ask, and never fills in fields it does not own.
+  # Leave null if your workstreams are a tag on the work database rather than
+  # rows in their own database.
+  epics_database: null
 
-  # An EXISTING Notion database to write implementation-plan task rows into, as
-  # a URL or database ID. Synthex's tasks live alongside whatever else the team
-  # tracks there, which is why `workstream` below is mandatory.
+  # An EXISTING Notion database holding the work items your epics break down
+  # into, as a URL or database ID. Synthex's tasks live alongside whatever else
+  # the team tracks there, which is why `workstream` below is mandatory.
   # If null, `/synthex:configure-notion` offers to create one.
   tasks_database: null
+
+  # An EXISTING Notion page for CROSS-CUTTING documents only — specs, ADRs,
+  # RFCs, and runbooks, which outlive any single initiative and have no epic to
+  # hang from. Epic-scoped documents ignore this and resolve against their own
+  # epic row instead.
+  # These types default to the filesystem backend, because Synthex reads them
+  # on every review invocation and they are engineering-internal, so most
+  # projects never need to set this.
+  docs_root: null
 
   # Resolved page IDs per document type, as a map of <doc_type>: <page id>.
   # `/synthex:configure-notion` writes these as it nominates or creates each
@@ -563,6 +576,26 @@ notion:
     # it. Multi-initiative repos should leave it null and let each plan speak
     # for itself, so a plan can never silently inherit the wrong epic.
     value: null
+
+  # Assignee scoping — relevant when several engineers share one epic.
+  # Workstream scoping alone still lets two engineers select the same item, so
+  # when `property` is set, task queries are additionally scoped to work the
+  # invoking engineer may legitimately take: assigned to them, OR unassigned.
+  # Items assigned to somebody else are never selected or modified.
+  # Synthex creates new items unassigned (a planned task is available work),
+  # then claims one by assigning it to the current user when moving it to
+  # in-progress. That claim is what stops two engineers taking the same item.
+  # The current user is resolved from Notion at runtime — nothing here
+  # identifies you.
+  # Leave `property` null to skip assignee scoping entirely, which is fine when
+  # an epic is effectively owned by one engineer at a time.
+  assignee:
+    # A person property on `tasks_database`.
+    property: null
+    # Whether unassigned items are considered claimable. Setting this false
+    # restricts Synthex to items already assigned to you, which means it will
+    # not pick up newly planned work until someone assigns it.
+    include_unassigned: true
 
   # Maps Synthex's canonical task fields onto your database's actual property
   # names, as a map of <canonical_field>: <your property name>.

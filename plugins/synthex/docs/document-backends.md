@@ -77,33 +77,57 @@ Two cases override the above:
 
 ---
 
-## 5. Task state specifics
+## 5. The workstream reference — resolve it once, use it twice
 
-Only relevant to commands that read or write implementation-plan task state.
+Under the `notion` backend the workstream reference does two jobs, and both happen before you touch anything:
 
-### Resolve the workstream value from the plan — before touching any task
+- it **anchors epic-scoped documents**, because the initiative's own page holds its PRD, plan, and retrospectives as subpages;
+- it **scopes task queries**, because the work items relate to that same page.
+
+Resolving it once and using it for both is what keeps documents and tasks from disagreeing about which initiative a run is operating on.
+
+### Step A — read the plan and take its reference
 
 The workstream **property** comes from `notion.workstream.property`. The **value** comes from the plan, because a repository usually has several initiatives in flight and one configured value would make their rows indistinguishable.
 
-Read the plan first, then take its value in this order:
+Take it in this order:
 
-1. The plan's `**Workstream:**` line, immediately beneath its H1 — **authoritative**
+1. The plan's `**Workstream:**` line, immediately beneath its H1 — **authoritative**. (`**Epic:**` is accepted as a synonym.)
 2. `notion.workstream.value` — a default for plans that do not declare one
-3. Neither → report `schema_mismatch` and do **not** touch tasks
-
-Pass the resolved pair to the task store as its `workstream` config. The task store never reads plan documents; resolving the value is the caller's job.
+3. Neither → report `schema_mismatch` and do **not** touch documents or tasks
 
 ```markdown
 # Implementation Plan: Billing Migration
 
-**Workstream:** Billing Migration
+**Workstream:** [Billing Migration](https://www.notion.so/<epic-row-id>)
 ```
 
-This ordering is what stops a command from operating on the wrong epic. You cannot query or write task rows without having read the plan those rows belong to, and that plan names its own workstream — so there is no flag to forget and no config entry to drift.
+The link form carries a label for people and an id for the filter, in one line.
+
+### Step B — resolve it to a page id
+
+If the scoping property is a `relation`, the filter needs a page **UUID** — Notion cannot filter a relation by page name. Extract the id from the markdown link, a bare URL, or a bare UUID. A plain name resolves only by a unique exact title match in `notion.epics_database`; anything else is `schema_mismatch`.
+
+If the property is a `select`, `status`, or text type, the value is used as-is and there is no page to resolve — which also means **epic-scoped document anchoring is unavailable**, and those types fall back to `docs_root` or the filesystem. Anchoring needs a page; a tag is not a page.
+
+### Step C — pass it to both adapters
+
+| Adapter | Field | Value |
+|---------|-------|-------|
+| `notion-document-store` | `workstream_page` | the resolved page id (epic-scoped types need it) |
+| `notion-task-store` | `workstream` | `{ property, value }` with the resolved value |
+
+Neither adapter reads plan documents. Resolution is the caller's job, which is what makes it impossible to query task rows without having first read the plan those rows belong to — no flag to forget, no config entry to drift.
 
 **When a plan declares a value, it wins, even if config names a different one.** Config is a default, not an override. If the two differ, mention it once in your output so the discrepancy is visible, then proceed with the plan's value.
 
-**Never invent a value.** Not from the plan's title, not from the filename, not from the branch. A derived value that happens to match nothing silently returns an empty queue, which looks exactly like "all work complete." Missing means `schema_mismatch`.
+**Never invent a value.** Not from the plan's title, not from the filename, not from the branch. A derived value that matches nothing silently returns an empty queue, which looks exactly like "all work complete." Missing means `schema_mismatch`.
+
+### Step D — assignee scoping comes for free
+
+When `notion.assignee.property` is set, the task store additionally scopes to work you may take — assigned to you, or unassigned — and claims an item by assigning it to you when it moves to `in_progress`. You do not pass an identity; it resolves the current user from Notion itself.
+
+This matters when several engineers share one epic. Without it, two of them running `next-priority` on the same initiative can select the same item.
 
 ### Other task specifics
 

@@ -40,9 +40,12 @@ You are never user-facing. You never prompt the user; if configuration is missin
   edits:      array   (optional) — required for patch: [{ old_str, new_str }]
   version:    string  (optional) — supplied with write | patch for conflict detection
   config:     object  (required)
-    docs_root:    string|null — existing page to root documents under
-    targets:      object      — explicit per-doc_type page IDs, when configured
-    strict_mode:  boolean
+    workstream_page: string|null — the initiative's own page (an epics-database
+                                   row); anchors epic-scoped documents.
+                                   Resolved and supplied by the caller.
+    docs_root:       string|null — existing page rooting CROSS-CUTTING documents
+    targets:         object      — explicit per-doc_type page IDs, when configured
+    strict_mode:     boolean
 }
 ```
 
@@ -61,17 +64,35 @@ Do not retry either condition. Both are terminal and need user action, not anoth
 
 ### Step 1 — Resolve the Target
 
-Resolve `doc_type` to a Notion page in this order, first match wins:
+Document types divide by scope, and the two halves resolve against different anchors:
+
+| Scope | Document types | Anchor |
+|-------|---------------|--------|
+| **Epic-scoped** | `requirements`, `implementation_plan`, `retros` | `config.workstream_page` — the initiative's own page |
+| **Cross-cutting** | `specs`, `decisions`, `rfcs`, `runbooks` | `config.docs_root` |
+
+Every row of a Notion database is itself a page and can hold subpages, so when a workstream is a row in an epics database, that row anchors its own initiative's documents. The PRD, plan, and retrospectives become subpages of it, and the work items relate to it — one entry point for the whole initiative.
+
+Resolve in this order, first match wins:
 
 1. `ref`, when the caller supplied one explicitly.
-2. `config.targets.<doc_type>`, when configured. This is the deterministic path and the one `configure-notion` writes.
-3. A child of `config.docs_root` whose title matches the document type's conventional name.
+2. `config.targets.<doc_type>`, when configured. Deterministic, and survives the page being renamed.
+3. **Epic-scoped:** a subpage of `config.workstream_page` whose title matches the conventional name below.
+4. **Cross-cutting:** a child of `config.docs_root` whose title matches.
+
+Conventional titles for epic-scoped types:
+
+| Document type | Title |
+|---------------|-------|
+| `requirements` | `Product Requirements` |
+| `implementation_plan` | `Implementation Plan` |
+| `retros` | `Retrospective <YYYY-MM-DD>` — dated, since retrospectives accumulate; `list` returns them newest first |
 
 If resolution yields nothing, return `error_code: target_not_found` with an `error_message` naming the `doc_type` and pointing at `/synthex:configure-notion`. Do **not** create a page as a side effect of a `read` — creation is only ever the `create` operation.
 
-If `config.docs_root` is null and no explicit target is configured, that is also `target_not_found`.
+**An epic-scoped type requires `config.workstream_page`.** Without it, return `error_code: schema_mismatch`. Do not fall back to `config.docs_root`: that would file one initiative's PRD into a shared root, or worse, resolve to a different initiative's document carrying the same conventional title.
 
-**Never guess between multiple candidates.** If more than one child of `docs_root` matches, return `target_not_found` naming the ambiguity rather than picking one. Silently reading the wrong PRD is worse than failing.
+**Never guess between multiple candidates.** If more than one subpage or child matches, return `target_not_found` naming the ambiguity rather than picking one. Silently reading the wrong PRD is worse than failing.
 
 ### Step 2 — Perform the Operation
 
@@ -81,8 +102,8 @@ If `config.docs_root` is null and no explicit target is configured, that is also
 | `read` | `fetch` | Return `content_markdown` plus `version` from the page's `last_edited_time`. |
 | `write` | `update-page` with `replace_content` | Full replacement. See the conflict rule below. |
 | `patch` | `update-page` with `content_updates` | Section-scoped; preferred over `write`. |
-| `create` | `create-pages` with `parent` = resolved root | Sets `title`; content from `content`. |
-| `list` | `fetch` on `docs_root` | Return child page handles. |
+| `create` | `create-pages` with `parent` = the Step 1 anchor | Epic-scoped types parent to `workstream_page`; cross-cutting to `docs_root`. A database row's id **is** a page id, so parenting a subpage to an epic row is an ordinary `page_id` parent. |
+| `list` | `fetch` on the Step 1 anchor | Return child page handles. For `retros`, newest first. |
 
 **Prefer `patch` over `write`.** `write` replaces the whole page and will discard a human's concurrent edits to sections you never intended to touch. `patch` is section-scoped, so an edit someone made to a different section survives.
 

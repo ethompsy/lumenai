@@ -6,7 +6,7 @@ model: haiku
 
 Configure (or re-configure) the Notion backend for this project. The Notion backend routes Synthex's documents and implementation-plan task state into a Notion workspace that **already exists**, so its output appears inside the process your team already runs.
 
-The design principle is bolt-on compatibility: Synthex roots documents under a page you nominate, writes tasks into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a workstream identifier. It does not restructure your workspace and it does not change your database schema without your explicit consent.
+The design principle is bolt-on compatibility: Synthex links to epics you already have, hangs each initiative's documents beneath that initiative's own row, writes work items into the database your team already uses, maps onto that database's existing properties, and scopes every row it touches to one initiative and to work the invoking engineer may take. It does not restructure your workspace and it does not change your database schema without your explicit consent.
 
 This command is the standalone wizard for the `documents.backend*` and `notion` blocks in `.synthex/config.yaml`. It is invoked:
 
@@ -33,9 +33,11 @@ Read `@{config_path}`.
 >
 > Current configuration:
 >
-> - `docs_root: <value>`
+> - `epics_database: <value>`
 > - `tasks_database: <value>`
-> - `workstream: <property> = <value>`
+> - `workstream: <property>` (value read per plan; default `<value>`)
+> - `assignee: <property, or "not scoped">`
+> - `docs_root: <value>` (cross-cutting documents)
 > - document types routed to Notion: `<resolved list>`
 >
 > What would you like to do?
@@ -71,31 +73,46 @@ Call the Notion MCP access-discovery tool (`get_tool_access` with `{}`) once.
 
 ### 2. Nominate Existing Targets
 
-Ask the user for the two containers Synthex will use. Use `AskUserQuestion` for the choice of method, then collect the value.
+Ask for the databases and pages Synthex will use. Use `AskUserQuestion` for each choice of method, then collect the value.
 
-> **Where should Synthex put its documents?**
->
-> Synthex creates its PRDs, plans, ADRs, and retrospectives as child pages under a page you choose. It adds pages beneath that root and never renames, moves, or reorganizes anything already there.
->
-> 1. **Use an existing page** — paste the page URL (recommended).
-> 2. **Search for it by name** — Synthex searches your workspace and you pick from the results.
-> 3. **Create a new page** — Synthex creates one page to act as the root. Use this only if you have nowhere suitable yet.
-> 4. **Skip documents** — leave documents in local markdown; configure tasks only.
+#### 2a. The epics database
 
-Repeat the same shape for the task database:
-
-> **Which database should Synthex write implementation-plan tasks into?**
+> **Where do your epics or initiatives live?**
 >
-> Synthex adds task rows to a database you choose, alongside whatever else your team tracks there. It only ever reads and writes rows tagged with this project's workstream (configured next).
+> Every row in a Notion database is itself a page that can hold subpages, so Synthex hangs each initiative's documents — its requirements, implementation plan, and retrospectives — beneath that initiative's own row. The row becomes the single entry point for everything about it.
 >
-> 1. **Use an existing database** — paste the database URL (recommended).
+> 1. **Use an existing database** — paste the URL (recommended).
 > 2. **Search for it by name.**
-> 3. **Create a new database** — use this only if you have no task database yet.
+> 3. **I don't have one** — skip. Synthex will scope work by a tag on the work database instead, and documents will go under a separate page.
+
+Synthex links to epic rows you already have. It does **not** create them by default: an epics row is usually a curated artifact with fields — owner, target date, business context — that Synthex has no business filling in. Offer creation only if the user asks for it, and create the row with a title and nothing else.
+
+#### 2b. The work database
+
+> **Which database holds the work items your epics break down into?**
+>
+> Synthex adds task rows here, alongside whatever else your team tracks. It only ever reads and writes rows belonging to the initiative it is working on, and only work you may take.
+>
+> 1. **Use an existing database** — paste the URL (recommended).
+> 2. **Search for it by name.**
+> 3. **Create a new database** — use this only if you have no work database yet.
 > 4. **Skip tasks** — leave task state in the local plan file; configure documents only.
 
-Resolve each nominated target by fetching it. If a fetch fails, report `target_not_found` with the pasted value echoed back and re-ask rather than proceeding with an unverified target. If a search returns multiple plausible matches, present them and let the user pick — never auto-select.
+#### 2c. A root for cross-cutting documents (optional)
 
-If the user skips both, print `Nothing to configure. Synthex keeps using local markdown files.` and exit without writing.
+Only needed if the user wants specs, ADRs, RFCs, or runbooks in Notion. Those outlive any single initiative, so they have no epic to hang from.
+
+> **Where should cross-cutting documents go?**
+>
+> Specs, architecture decisions, RFCs, and runbooks outlive individual initiatives, so they need a home of their own rather than an epic's page.
+>
+> 1. **Keep them in git** (recommended) — Synthex reads specs and decisions on every code review, so local files are faster, and these are engineering-internal anyway.
+> 2. **Use an existing page** — paste the URL.
+> 3. **Search for it by name.**
+
+Resolve every nominated target by fetching it. If a fetch fails, report `target_not_found` with the pasted value echoed back and re-ask rather than proceeding with an unverified target. If a search returns several plausible matches, present them and let the user pick — never auto-select.
+
+If the user skips both databases, print `Nothing to configure. Synthex keeps using local markdown files.` and exit without writing.
 
 ### 3. Workstream Scoping (required for tasks)
 
@@ -105,15 +122,20 @@ Synthex will not query or write to a shared database unscoped. Fetch the databas
 
 Present them:
 
-> **How should Synthex tag its tasks?**
+> **How does a work item say which epic it belongs to?**
 >
-> Your database holds work from more than just Synthex, so every row Synthex creates is tagged with a workstream identifier, and every query it runs filters on that tag. This is what keeps Synthex from reading or modifying tickets that aren't its own.
+> Your database holds work from more than just Synthex, so every query Synthex runs is scoped to one initiative. This is what keeps it from reading or modifying work that isn't its own.
 >
 > Filterable properties found in your database: `<list with types>`
 >
-> 1. **Use an existing property** — pick one from the list, then give this project's value (e.g. `Checkout Revamp`).
+> 1. **Use an existing property** — pick one from the list. If you nominated an epics database in Step 2a, prefer a **relation** property pointing at it; that is the normal shape and it lets Synthex also hang documents off the epic row.
 > 2. **Add a `Workstream` property** — Synthex adds one select property to your database. This is a schema change and needs your explicit confirmation.
-> 3. **Use a separate database instead** — Synthex creates its own task database, leaving yours untouched.
+> 3. **Use a separate database instead** — Synthex creates its own work database, leaving yours untouched.
+
+When the chosen property is a **relation**, note two things for the user:
+
+- Filter values are page ids, not names — Notion cannot filter a relation by page title. Synthex handles this by having each plan carry a link to its epic, so nothing is asked of the user here.
+- Because the epic is a real page, Synthex can also place that initiative's requirements, plan, and retrospectives as subpages of it. A select or text property cannot do this: anchoring needs a page, and a tag is not a page. Say so, since it changes where documents end up.
 
 Then handle the **value**.
 
@@ -137,6 +159,27 @@ Record the answer as `notion.workstream.value`, or leave it null if the user dec
 Default is no. Decline means fall back to option 1 or 3.
 
 **Hard rule:** if no workstream property and value can be resolved, do NOT write `notion.enabled: true` for tasks. Print the reason and configure documents only. There is no unscoped fallback.
+
+### 3b. Assignee Scoping (recommended when several engineers share an epic)
+
+Scoping to one initiative is not the whole story. Several engineers commonly work the same epic, so two of them running Synthex against it could select the same work item.
+
+Identify person properties on the work database and offer:
+
+> **Should Synthex only take work that's yours or unclaimed?**
+>
+> Several engineers can share one epic, so Synthex can additionally limit itself to work you may legitimately take: **assigned to you, or unassigned.** Items assigned to someone else are never selected or modified.
+>
+> When it starts an unassigned item, it assigns the item to you — so another engineer's Synthex sees it as taken and skips it.
+>
+> Person properties found: `<list>`
+>
+> 1. **Use an existing person property** — pick one (recommended if more than one engineer touches this epic).
+> 2. **Skip** — scope by initiative only. Fine when an epic is effectively owned by one engineer at a time.
+
+Synthex resolves who you are from Notion at runtime, so nothing here records your identity.
+
+If the user picks option 2, leave `notion.assignee.property` null and tell them plainly what they are opting out of: two engineers on the same epic can select the same item.
 
 ### 4. Map Properties
 
@@ -186,15 +229,22 @@ Ask via `AskUserQuestion`, multi-select:
 
 > **Which documents should live in Notion?**
 >
-> Everything not selected stays as local markdown. A common split is to put the artifacts non-engineers read in Notion and leave the ones Synthex itself reads on every run — specs and ADRs — on local disk, since reading those from Notion adds latency to every review.
+> Everything not selected stays as local markdown.
+>
+> **Epic-scoped** — these become subpages of the epic they belong to, so anyone opening the epic finds them:
 >
 > - Product requirements (PRDs)
 > - Implementation plans
 > - Retrospectives
+>
+> **Cross-cutting** — these outlive any one initiative and need the separate root from Step 2c. Recommended to leave in git: Synthex reads specs and decisions on every code review, so local files are faster, and they are engineering-internal.
+>
+> - Technical specs
 > - Architecture Decision Records
 > - RFCs
 > - Runbooks
-> - Technical specs
+
+If the workstream property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
 
 Translate the selection into config:
 
@@ -213,17 +263,21 @@ documents:
 
 notion:
   enabled: true
-  docs_root: <resolved page id>
+  epics_database: <resolved database id, or null>
   tasks_database: <resolved database id>
+  docs_root: <resolved page id, or null>      # cross-cutting documents only
   targets: { <doc_type>: <resolved page id>, ... }
   workstream:
     property: <property name>
     value: <default value, or null>
+  assignee:
+    property: <person property name, or null>
+    include_unassigned: true
   property_map: { <canonical>: <their property>, ... }
   status_values: { <canonical>: <their option>, ... }
 ```
 
-Write a `targets` entry for every document type whose page you resolved or created in Step 2. This is the deterministic resolution path and it survives the page being renamed later; without it, Synthex has to match a child of `docs_root` by title and will fail rather than guess if several match.
+Write `targets` entries only for **cross-cutting** document types whose page you resolved in Step 2c. Epic-scoped types resolve against their own epic row at runtime, so recording a fixed page id for them would pin every initiative to one page — exactly the collision this design avoids. This is the deterministic resolution path and it survives the page being renamed later; without it, Synthex has to match a child of `docs_root` by title and will fail rather than guess if several match.
 
 Leave `strict_mode` at its default unless the user asked to change it.
 
@@ -234,21 +288,30 @@ Leave `strict_mode` at its default unless the user asked to change it.
 ```
 Notion backend configured.
 
-  Documents root:   <page title>
-  Task database:    <database name>
-  Workstream:       <property> = <default value, or "per-plan (no default)">
-  In Notion:        <list of doc types>
+  Epics database:   <database name>            (or "none — scoping by tag")
+  Work database:    <database name>
+  Scoped by:        <workstream property>  +  <assignee property, or "no assignee scoping">
+  Cross-cutting:    <page title, or "kept in git">
+
+  Epic-scoped docs: <list>   -> subpages of each epic
+  Cross-cutting:    <list>   -> <root, or git>
   Local markdown:   <list of remaining doc types>
 
   Mapped:           <canonical -> property list>
   Not mapped:       <list>  (recorded in the plan overview page instead)
 
-Each implementation plan names its own workstream on a **Workstream:** line
-beneath its H1. Synthex reads that value and only touches task rows tagged
-<property> = <that value>. Your other rows are never queried or modified.
+How this works day to day:
 
-With more than one initiative in this repo, give each plan its own value and
-they stay cleanly separated.
+  Each implementation plan names its own epic on a **Workstream:** line beneath
+  its H1. Synthex reads that line, finds the epic, and from there knows both
+  where the initiative's documents live and which work items are in scope.
+
+  So several initiatives in one repo stay cleanly separated — one plan each,
+  no config to juggle.
+
+  Within an epic, Synthex only takes work assigned to you or unassigned, and
+  claims an item by assigning it to you when it starts. Work another engineer
+  has claimed is never selected or modified.
 
 Re-run /synthex:configure-notion any time to change this, or to disable it.
 ```

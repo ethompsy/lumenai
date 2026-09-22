@@ -42,6 +42,23 @@ The backend introduces exactly one seam: a **document store contract** that comm
 
 The `filesystem` backend is not an implementation so much as the absence of one: it is the existing inline Read/Write/Edit behavior, preserved unchanged as the fallthrough. This is deliberate — see §3.
 
+On the Notion side, the workspace is two related databases rather than one, and that shape drives the rest of the design:
+
+```
+  Epics DB
+    ▸ Billing Migration                (row = page)
+        ├─ Product Requirements        (subpage)
+        ├─ Implementation Plan         (subpage)
+        ├─ Retrospective 2026-09-22    (subpage)
+        │
+  Work DB │
+    ├─ Add rate limiting     ──relation──┘   assignee: unassigned
+    ├─ Migrate invoice job   ──relation──┘   assignee: me
+    └─ Backfill ledger       ──relation──┘   assignee: someone else   ← never touched
+```
+
+Because every row of a Notion database is itself a page, the epic row anchors both halves: its documents hang beneath it as subpages, and its work items relate to it. One reference resolves both.
+
 ---
 
 ## 2. Why the seam is a contract, not a library
@@ -109,6 +126,26 @@ This is the same move as the pre-write verification in §5: convert a rule someo
 
 The adapter contract is untouched by this. Callers resolve the value and pass it in; `notion-task-store` never reads plan documents and simply refuses when either half of the pair is absent.
 
+### Relations make the value a page id, not a name
+
+When work items point at their epic through a Notion **relation**, the filter value must be a page UUID — Notion cannot filter a relation by page title. This is worth stating as an architectural constraint rather than an implementation note, because the failure it produces is silent and points the wrong way: a plan naming its epic as bare text filters on nothing and returns an empty result set, which reads as "this initiative has no work left."
+
+So the plan carries a markdown link — `[Billing Migration](https://www.notion.so/<id>)` — which serves people and the filter from one line. A bare URL or UUID works; a plain name resolves only by a unique exact title match in the epics database, and fails otherwise rather than guessing.
+
+A corollary that is easy to miss: a `select`-typed workstream **cannot anchor documents**. Anchoring needs a page, and a tag is not a page. Such projects keep tasks scoped but lose epic-scoped document placement, falling back to the docs root.
+
+### Assignee scoping — the second dimension
+
+Scoping to an initiative separates Synthex from other teams and from its own other initiatives. It does not separate two engineers working the same epic, who can still select the same item.
+
+So when an assignee property is configured, queries narrow again to work the invoking engineer may take: **theirs, or unassigned.** Items someone else holds are not read, not written, not reported.
+
+What makes this more than advisory is the claim. Synthex creates items unassigned — a planned task is available work — and assigns one to the current user on the transition to `in_progress`. Once claimed, another engineer's query excludes it, because it is neither theirs nor unassigned. Without the claim, "unassigned is claimable" lets two engineers claim the same item in the same instant.
+
+Claiming is the only property beyond status that a status transition writes, and it is bounded to three conditions: the property is mapped, the transition is to `in_progress`, and the item is currently unassigned. It never reassigns an item that has an owner and never clears one.
+
+One behavioral consequence falls out and is worth naming: because claimed items are excluded from queries, **a queue holding only other engineers' work is not completion.** Commands report work remaining rather than signalling done — the same handling as blocked or `[H]`-gated tasks.
+
 ---
 
 ## 6. Schema adaptation
@@ -123,7 +160,15 @@ Degradations are reported in the response envelope, because a silent degradation
 
 ---
 
-## 7. Task identity
+## 7. Document scope
+
+Documents split along a line that predates this feature: `requirements`, `implementation_plan`, and `retros` belong to one initiative; `specs`, `decisions`, `rfcs`, and `runbooks` outlive every initiative.
+
+The epic-scoped three anchor to the epic row. The cross-cutting four have no anchor, resolve against the docs root, and **default to the filesystem** — Synthex reads specs and decisions on every review invocation, so fetching them over MCP would tax every review, and they are engineering-internal anyway.
+
+An epic-scoped resolve without a resolved epic fails rather than falling back to the docs root. Falling back would file one initiative's PRD into a shared page, or resolve onto another initiative's identically-titled document — a silent cross-contamination worse than an error.
+
+## 8. Task identity
 
 Under `notion`, a task's identity is its Notion page ID. Under `filesystem`, it is `<milestone>.<ordinal>`, preserving today's semantics exactly.
 
@@ -133,7 +178,7 @@ Separating opaque `task_ref` from display-only `ordinal` removes the hazard enti
 
 ---
 
-## 8. Failure handling
+## 9. Failure handling
 
 Default is fail-soft: fall back to `filesystem` for the affected document type, warn naming the error code, and continue. `strict_mode: true` aborts instead, for teams where silent divergence between Notion and local state is worse than a failed command.
 
@@ -146,7 +191,7 @@ Two deviations:
 
 ---
 
-## 9. Validation surface
+## 10. Validation surface
 
 | Concern | Test |
 |---------|------|
@@ -155,13 +200,14 @@ Two deviations:
 | Required vs optional mapping, degradation reported, no silent migration | `tests/schemas/notion-property-mapping.test.ts` |
 | Config block shape, off-by-default, maps-not-arrays, documented subkeys | `tests/schemas/defaults-yaml-notion.test.ts` |
 | Command wiring, disabled-path short-circuit, init delegation | `tests/schemas/notion-command-integration.test.ts` |
+| Epic anchoring, relation resolution, assignee scoping, claiming | `tests/schemas/notion-epic-anchoring.test.ts` |
 | Pre-refactor behavior preserved | `tests/schemas/notion-baseline-snapshots.test.ts` + baselines |
 
 All Layer 1: zero LLM cost, runs on every PR.
 
 ---
 
-## 10. Deferred
+## 11. Deferred
 
 - **Bidirectional sync.** One backend per document type; no reconciliation of divergent copies.
 - **Content migration.** No bulk import in either direction.

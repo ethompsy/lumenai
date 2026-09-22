@@ -169,10 +169,20 @@ describe('FR-NB1: command integration', () => {
       text = read('commands/write-implementation-plan.md');
     });
 
-    it('writes prose to the overview page and tasks to the database', () => {
+    it('writes prose to the plan page and tasks to the work database', () => {
       expect(text).toMatch(/written as two things, not one/);
-      expect(text).toMatch(/plan overview page/);
-      expect(text).toMatch(/task database/);
+      expect(text).toMatch(/plan page/);
+      expect(text).toMatch(/work database/);
+      expect(text).toMatch(/linked to the epic/);
+    });
+
+    it('anchors the plan page beneath its epic', () => {
+      expect(text).toMatch(/\*\*The plan page is a subpage of its epic\.\*\*/);
+      expect(text).toMatch(/rather than filing the plan somewhere arbitrary/);
+    });
+
+    it('creates task rows unassigned', () => {
+      expect(text).toMatch(/New task rows are created unassigned/);
     });
 
     it('creates task rows with the canonical pending status', () => {

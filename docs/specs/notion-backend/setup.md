@@ -15,8 +15,23 @@
 
 Synthex's documents and implementation-plan tasks appear in Notion instead of only as markdown in your repository:
 
-- PRDs, plans, ADRs, RFCs, runbooks, and retrospectives become pages under a root page you choose.
-- Implementation-plan tasks become rows in a task database you choose, with status updated as work completes.
+- An initiative's **requirements, plan, and retrospectives become subpages of its epic**, so anyone opening the epic finds them.
+- **Plan tasks become rows in your work database**, linked to that epic, with status updated as work completes.
+
+```
+Epics DB
+  ▸ Billing Migration              ← the epic you already have
+      ├─ Product Requirements      ← Synthex adds these
+      ├─ Implementation Plan
+      └─ Retrospective 2026-09-22
+
+Work DB
+  ├─ Add rate limiting      → Billing Migration    (unassigned)
+  ├─ Migrate invoice job    → Billing Migration    (you)
+  └─ Backfill ledger        → Billing Migration    (someone else — untouched)
+```
+
+Cross-cutting documents — specs, ADRs, RFCs, runbooks — stay in git by default, since they outlive any one initiative and Synthex reads them on every code review.
 
 You choose which of those document types go to Notion. Anything you do not select stays as local markdown.
 
@@ -28,10 +43,12 @@ You choose which of those document types go to Notion. Anything you do not selec
 
 The Notion MCP server, available and authorized in your session. Synthex never holds a Notion API key — it reaches Notion entirely through the MCP connection using your existing authorization.
 
-You will also want, though Synthex can create them if you have neither:
+You will also want:
 
-- An existing Notion **page** to root documents under.
-- An existing Notion **database** to write task rows into.
+- Your existing **epics database** — the one whose rows are epics or initiatives.
+- Your existing **work database** — where those epics' work items live, related back to the epic.
+
+Synthex links to epic rows you already have. It will not create one unless you ask, because an epics row usually carries owner, dates, and business context it has no basis to fill in.
 
 Both must be shared with the Notion integration your MCP connection uses; otherwise Synthex sees them as nonexistent.
 
@@ -49,9 +66,11 @@ The wizard walks eight steps. It is re-runnable at any time and idempotent.
 
 | Step | What it needs | Notes |
 |------|--------------|-------|
-| 2 | The page to root documents under | Paste a URL, search by name, or create one |
-| 2 | The task database | Paste a URL, search by name, or create one |
-| 3 | A workstream property and value | Required for tasks — see §4 |
+| 2a | Your epics database | Paste a URL or search by name |
+| 2b | Your work database | Paste a URL or search by name |
+| 2c | A root for cross-cutting docs | Optional — recommended to keep these in git |
+| 3 | How a work item names its epic | Usually a relation property — see §4 |
+| 3b | An assignee property | Recommended when several engineers share an epic — see §4 |
 | 4 | Property mappings | Proposed from your database's real schema; you confirm |
 | 6 | Which document types go to Notion | Multi-select; the rest stay local |
 
@@ -61,56 +80,55 @@ Before enabling anything it shows a data-transmission warning describing exactly
 
 ---
 
-## 4. The workstream identifier
+## 4. How Synthex stays in its lane
 
-**This is the most important thing to understand about the integration.**
+**This is the most important section.** Two dimensions of scoping, and both matter.
 
-Your task database probably holds work from more than just Synthex. So every row Synthex creates is tagged with a workstream identifier, and **every query Synthex runs filters on that tag**.
+### Which initiative (the epic)
 
-```yaml
-notion:
-  workstream:
-    property: Team              # an existing property in your database
-    value: Checkout Revamp      # this project's identifier
-```
-
-The consequences are worth being explicit about:
-
-- Synthex reads **only** rows where `Team = Checkout Revamp`. Your other rows are never queried.
-- Synthex writes **only** to rows carrying that value. Before any update it re-checks the row and refuses if it does not match.
-- `next-priority`'s "all tasks complete" check covers only this workstream. Other teams' tickets never gate your delivery.
-
-If your database has no property suitable for this, the wizard offers to add one (a single additive property, with your explicit confirmation) or to use a separate database instead.
-
-### Running more than one initiative at once
-
-The `property` above is set once, because it describes your database. The **value** is per initiative, and it lives on the plan rather than in config — each implementation plan names its own workstream on a line beneath its H1:
+Your work database holds items from many epics. Synthex acts on exactly one at a time, and each **plan names its own epic** on a line beneath its H1:
 
 ```markdown
 # Implementation Plan: Billing Migration
 
-**Workstream:** Billing Migration
+**Workstream:** [Billing Migration](https://www.notion.so/<epic-row-id>)
 ```
 
-So two concurrent epics stay cleanly separated with no config juggling:
+The link form matters. If your work items point at their epic through a Notion **relation**, the filter needs the epic's page id — Notion cannot filter a relation by page name. The markdown link carries a label for people and the id for the filter in one line, so you never deal with a bare UUID. (`**Epic:**` works as a label too.)
+
+So several concurrent initiatives stay separated with no config juggling:
 
 ```
 /synthex:next-priority --implementation_plan_path docs/plans/checkout.md
-  -> reads "Checkout Revamp" from that plan, queries only those rows
+  -> reads its epic from that plan, acts only on that epic's work
 
 /synthex:next-priority --implementation_plan_path docs/plans/billing.md
-  -> reads "Billing Migration" from that plan, queries only those rows
+  -> reads its epic from that plan, acts only on that epic's work
 ```
 
 Each run's "all tasks complete" covers only its own initiative, so finishing checkout does not wait on billing.
 
-`notion.workstream.value` in config is just a default for plans that do not declare one. **If you run several initiatives, leave it null** — then a new plan can never silently inherit another epic's identifier; it has to say what it is. If you only ever have one initiative, setting the default means you can ignore workstreams entirely.
+`notion.workstream.value` in config is just a default for plans that don't declare one. **If you run several initiatives, leave it null** — then a new plan can never silently inherit another epic's identity; it has to say what it is.
 
-Synthex will not guess a value from a filename, branch, or plan title. A guessed value that matches no rows returns an empty queue, which looks exactly like "all work complete" — so a missing value is an error you will hear about rather than a silent no-op.
+### Whose work (the assignee)
 
-**Synthex will not run tasks unscoped.** There is no flag to disable this and strict mode does not exempt it. If no workstream can be resolved, the wizard configures documents only and tells you why.
+Scoping to an epic isn't enough when several engineers share it — two of you could pick the same item. So Synthex also limits itself to work you may legitimately take:
 
----
+> **assigned to you, or unassigned**
+
+- Items **someone else holds are never** read into your queue, updated, or reassigned.
+- New items Synthex creates are **unassigned** — a planned task is available work.
+- When Synthex **starts** an item, it **assigns it to you**. That's what makes the claim real: another engineer's Synthex now sees it as taken and skips it.
+
+You don't configure who you are; Synthex asks Notion at runtime.
+
+One consequence worth knowing: if every remaining item in an epic is claimed by others, Synthex reports *work remaining*, not *done*. A queue that's empty because your colleagues hold everything is not a finished epic.
+
+This is optional — leave the assignee property unset and you get epic scoping only, which is fine when one engineer owns an epic at a time. The wizard will tell you what you're opting out of.
+
+### Not guessing
+
+Synthex will not derive an epic from a filename, branch, or plan title. A guessed value matching no rows returns an empty queue, which looks exactly like "all work complete" — so a missing or ambiguous epic is an error you hear about, not a silent no-op.
 
 ## 5. Property mapping
 
@@ -145,28 +163,40 @@ notion:
 
 - Rename, move, archive, or delete any page that existed before it arrived.
 - Reorganize the contents of your docs root.
-- Modify a task row outside its configured workstream.
+- Modify a work item belonging to a different epic.
+- Read, modify, or reassign a work item that another engineer has claimed.
 - Add a property, add a select option, or change a property type without asking you first — and that prompt defaults to no.
 - Store a Notion API key or token anywhere.
+- Create an epic row, unless you explicitly ask — and then only with a title.
 - Send your source code. Only documents and task metadata are transmitted.
 
 ---
 
 ## 7. Choosing what goes to Notion
 
-A common split:
+Document types divide by whether they belong to one initiative or outlive them all:
+
+| Epic-scoped — become subpages of the epic | Cross-cutting — no epic to hang from |
+|---|---|
+| Product requirements | Technical specs |
+| Implementation plan | Architecture decisions (ADRs) |
+| Retrospectives | RFCs, runbooks |
+
+The recommended split, which is also the default:
 
 ```yaml
 documents:
   backend: filesystem
   backend_overrides:
-    requirements: notion        # PMs read these
-    implementation_plan: notion # stakeholders track these
-    retros: notion              # the team discusses these
-    # specs, decisions, rfcs, runbooks stay local
+    requirements: notion         # PMs read these
+    implementation_plan: notion  # stakeholders track these
+    retros: notion               # the team discusses these
+    # specs, decisions, rfcs, runbooks stay in git
 ```
 
-The reason to leave `specs` and `decisions` local: `review-code` reads them on every invocation for spec-compliance checking. Fetching them from Notion adds latency to every review. Put the artifacts humans read in Notion; leave the ones Synthex reads on disk.
+The reason to leave the cross-cutting four in git: `review-code` reads specs and decisions on every invocation for spec-compliance checking, so fetching them from Notion taxes every review — and they're engineering-internal anyway. Put the artifacts humans outside the team read in Notion; leave the ones Synthex reads on disk.
+
+If your work items name their epic with a **select or text** property rather than a relation, epic-scoped placement isn't available — anchoring needs a page, and a tag is not a page. Those documents fall back to the cross-cutting root or to git, and the wizard says so rather than offering a choice it can't honor.
 
 ---
 

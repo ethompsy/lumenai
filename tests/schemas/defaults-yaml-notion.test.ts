@@ -197,6 +197,12 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
 
     const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'synthex');
 
+    // The `config` object an adapter receives is project config PLUS a small,
+    // explicit set of values the CALLER resolves at runtime and passes in.
+    // Those legitimately have no entry in defaults.yaml. Keeping the set here
+    // and small is the point: anything else must be real config.
+    const CALLER_SUPPLIED = new Set(['workstream_page']);
+
     it.each(ADAPTERS)('%s references only real notion config keys', (rel) => {
       const text = readFileSync(join(PLUGIN, rel), 'utf8');
       const referenced = new Set(
@@ -204,10 +210,24 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       );
       expect(referenced.size).toBeGreaterThan(0);
       for (const key of referenced) {
+        if (CALLER_SUPPLIED.has(key)) continue;
         expect(
           Object.prototype.hasOwnProperty.call(cfg.notion, key),
-          `${rel} references config.${key}, which is not a key under notion: in defaults.yaml`,
+          `${rel} references config.${key}, which is neither a key under notion: in defaults.yaml nor a documented caller-supplied field`,
         ).toBe(true);
+      }
+    });
+
+    it('every caller-supplied field is documented as such in its adapter', () => {
+      // A caller-supplied field that is not labelled as one is
+      // indistinguishable from a dangling config reference.
+      const combined = ADAPTERS.map((rel) =>
+        readFileSync(join(PLUGIN, rel), 'utf8'),
+      ).join('\n');
+      for (const key of CALLER_SUPPLIED) {
+        expect(combined).toMatch(
+          new RegExp(`${key}[\\s\\S]{0,240}?[Ss]upplied by the caller`),
+        );
       }
     });
   });

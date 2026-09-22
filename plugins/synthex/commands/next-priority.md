@@ -40,7 +40,10 @@ This command reads the implementation plan's task queue and writes task state ba
 
 **Command-specific notes**
 
-- **Resolve the workstream value from the plan first.** Read the plan, take its `**Workstream:**` line (falling back to `notion.workstream.value`, and reporting `schema_mismatch` if neither exists), and pass it to every task-store call. This is what keeps a run scoped to the epic you invoked it on: with several initiatives in one repository, a configured value alone would return another epic's tasks and the plan-complete check would never fire. See [`document-backends.md`](../docs/document-backends.md) §5.
+- **Resolve the workstream reference from the plan first.** Read the plan, take its `**Workstream:**` line (falling back to `notion.workstream.value`, and reporting `schema_mismatch` if neither exists), resolve it to an epic page id, and pass it to every task-store call. This is what keeps a run scoped to the epic you invoked it on: with several initiatives in one repository, a configured value alone would return another epic's tasks and the plan-complete check would never fire. See [`document-backends.md`](../docs/document-backends.md) §5.
+- **Work is additionally scoped to what you may take.** When `notion.assignee.property` is set, the task store returns only items assigned to the current user or unassigned, and claims an item by assigning it to that user when Step 3 moves it to `in_progress`. Two consequences for this command:
+  - **Another engineer's in-flight work never enters your queue**, so two engineers can run this command against the same epic concurrently without selecting the same item.
+  - **"No actionable tasks" can mean "all remaining work is claimed by someone else."** That is a normal outcome, not a completion. Do not emit the completion promise; report what remains and who holds it, exactly as with blocked or `[H]`-gated tasks.
 - This is the one command that mutates task state, so it is the one most affected by the backend. Under `notion`, delegate every task read and write to `notion-task-store`:
 
   | Workflow step | Task-store operation |

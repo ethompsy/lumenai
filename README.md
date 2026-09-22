@@ -136,11 +136,13 @@ See [`docs/specs/multi-model-review/architecture.md`](docs/specs/multi-model-rev
 
 Synthex's documents — PRDs, implementation plans, ADRs, RFCs, runbooks, retrospectives — and its implementation-plan task state can live in Notion instead of local markdown, so product managers, designers, and stakeholders can read and track the work in the tool they already use.
 
-The design commitment is **bolt-on compatibility**. Synthex points at a Notion page and a task database that already exist, creates its documents as children of that page, writes task rows into that database, and maps onto whatever properties the database already has. Every row it creates carries a workstream identifier and every query filters on it, so Synthex coexists with other teams' work in a shared database without ever reading or modifying rows that aren't its own. It never restructures a workspace and never changes a database schema without explicit consent.
+The design commitment is **bolt-on compatibility**. Synthex points at databases you already have — your epics and the work items they break down into — and adapts to whatever properties they already carry. Because every Notion database row is itself a page, an initiative's requirements, plan, and retrospectives become subpages of its own epic row, and its work items relate back to it. One epic, one entry point.
+
+Scoping runs on two dimensions so Synthex coexists with everyone else's work: each plan names its own epic, so concurrent initiatives never mix, and within an epic Synthex acts only on work **assigned to you or unassigned** — claiming an item when it starts so another engineer's run skips it. Work someone else holds is never read, modified, or reassigned. It never restructures a workspace and never changes a database schema without explicit consent.
 
 **Off by default.** Opt in via `/synthex:configure-notion` (or the matching `/synthex:init` step). When disabled, behavior is byte-identical to pre-Notion Synthex. Access is through the Notion MCP server — Synthex holds no Notion API key and sends no source code.
 
-You choose which document types go to Notion; a common split puts requirements, plans, and retrospectives there while leaving specs and ADRs on local disk, since `review-code` reads those on every invocation.
+You choose which document types go to Notion. The default split routes the epic-scoped three — requirements, plans, retrospectives — to Notion while leaving the cross-cutting four (specs, ADRs, RFCs, runbooks) in git, since `review-code` reads those on every invocation and they outlive any one initiative.
 
 See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for setup and [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design.
 
