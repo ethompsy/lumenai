@@ -31,6 +31,19 @@ This command does NOT produce an implementation plan. It improves the PRD so tha
 
 ---
 
+## Document Backend
+
+This command reads and rewrites a PRD. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `requirements` (read and write)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `requirements_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- This command rewrites an existing document in place, so prefer a section-scoped `patch` over a full-document `write`. A stakeholder may be reading or commenting on another section of the same Notion page while this runs.
+- Reviewer sub-agents receive the PRD **content**, not a path. They are unaffected by which backend supplied it.
+
 ## Workflow
 
 ### 1. Load Configuration

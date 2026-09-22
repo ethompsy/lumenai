@@ -23,6 +23,19 @@ You facilitate the creation of an RFC by:
 
 ---
 
+## Document Backend
+
+This command writes a Request for Comments. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `rfcs` (write)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `rfcs_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- Each RFC is a new document, so use `create` rather than `write`.
+- RFCs exist to be commented on, which makes them one of the better fits for the Notion backend: Notion's native comments give reviewers a place to respond that a markdown file in a repo does not.
+
 ## Workflow
 
 ### 1. Load Configuration

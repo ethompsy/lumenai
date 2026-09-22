@@ -50,6 +50,21 @@ Every task in the implementation plan must have acceptance criteria. Each criter
 
 ---
 
+## Document Backend
+
+This command a PRD and writes an implementation plan. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `requirements` (read), `specs` (read), `implementation_plan` (write)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `requirements_path`, `specs_path`, `plan_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- Under the `notion` backend the finished plan is written as two things, not one: the prose sections (Overview, Decisions, Open Questions, milestone summaries) go to the plan overview page via `notion-document-store`, and each task becomes a row in the task database via `notion-task-store`. Step 7 below writes both.
+- Create task rows with the canonical status `pending`. The adapter translates that to whatever the target database calls it.
+- When the task database has no property mapped for `complexity`, `milestone`, or `dependencies`, the adapter reports a degradation and that data belongs in the overview page instead. Keep it in the plan prose rather than inventing a property for it.
+- The `plan-linter` structural audit in Step 5.5 runs against the **draft markdown**, before any backend write. It is unaffected by this section.
+
 ## Workflow
 
 ### 1. Load Configuration

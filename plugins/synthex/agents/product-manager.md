@@ -60,6 +60,17 @@ Do NOT ask all questions at once. Group them logically, ask 3-5 at a time using 
 | Implementation Plan (main) | `docs/plans/main.md` | Prioritized, milestone-based execution plan |
 | Implementation Plan (sub) | `docs/plans/[initiative-name].md` | Execution plan for specific initiatives |
 
+### Where these documents actually live
+
+The locations above are the defaults for the `filesystem` backend, which is what you should assume unless told otherwise.
+
+A project can route documents to Notion instead (see [`_shared/document-store-contract.md`](./_shared/document-store-contract.md)). That changes nothing about your job: you work on document **content**, and the invoking command resolves and performs the storage. Do not read or write Notion yourself, and do not assume a path exists just because this table names one — a command may hand you content whose origin has no filesystem path at all.
+
+Two consequences worth holding onto:
+
+- **Refer to documents by role, not by path**, in anything a user reads. "the implementation plan" travels correctly to a Notion-backed project; "docs/plans/main.md" does not.
+- **Under a Notion-backed plan the document is split.** The prose sections you author — Overview, Decisions, Open Questions, milestone summaries — go to a plan overview page, while each task becomes a row in a task database. You still produce one coherent plan document; the command splits it. Keep the plan self-contained so the split is mechanical rather than a judgment call.
+
 ---
 
 ## PRD Structure (Default Template)
@@ -184,6 +195,8 @@ Open questions can become decisions (and thus new tasks) as they are resolved. U
 - **Simple task completions** -> Tech Lead can update the plan directly.
 - Keep the implementation plan continuously updated with progress and learnings.
 - When the plan exceeds 1500 lines, summarize completed work to keep it manageable.
+- **Surface structural task changes.** When an update adds, removes, or moves a task between milestones, say so explicitly in your summary rather than only emitting a revised plan. Under a Notion-backed plan the command has to propagate that change to the task database, and it can only do so if the change is stated. Plan Scribe reports these under "Structural task changes" when you delegate the edit; pass that through. Content-only revisions need no such call-out.
+- **Never reference a task by its ordinal alone** in anything that outlives the document. Task numbers are display positions and get renumbered whenever tasks are inserted or removed; a dependency or hand-off that says "Task 3" silently points somewhere else after the next insert. Name the task.
 
 ---
 

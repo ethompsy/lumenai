@@ -245,7 +245,7 @@ describe('Init Command — "What This Command Does" Summary', () => {
     expect(summaryMatch![1].toLowerCase()).toMatch(/concurrent|parallelism/);
   });
 
-  it('lists 8 numbered steps in the summary', () => {
+  it('lists 9 numbered steps in the summary', () => {
     const summaryMatch = markdown.match(
       /## What This Command Does\s*\n([\s\S]*?)(?=## Workflow)/
     );
@@ -253,7 +253,7 @@ describe('Init Command — "What This Command Does" Summary', () => {
     const numberedSteps = summaryMatch![1]
       .split('\n')
       .filter((l) => /^\d+\./.test(l.trim()));
-    expect(numberedSteps.length).toBe(8);
+    expect(numberedSteps.length).toBe(9);
   });
 });
 
@@ -278,24 +278,28 @@ describe('Init Command — Workflow Step Ordering', () => {
     expect(extractWorkflowStep(markdown, 4, 'Configure Multi-Model Review')).not.toBeNull();
   });
 
-  it('step 5 is "Update .gitignore"', () => {
-    expect(extractWorkflowStep(markdown, 5, 'Update')).not.toBeNull();
+  it('step 5 is "Configure Notion Backend"', () => {
+    expect(extractWorkflowStep(markdown, 5, 'Configure Notion Backend')).not.toBeNull();
   });
 
-  it('step 6 is "Create `.worktreeinclude`"', () => {
-    expect(extractWorkflowStep(markdown, 6, 'Create `.worktreeinclude`')).not.toBeNull();
+  it('step 6 is "Update .gitignore"', () => {
+    expect(extractWorkflowStep(markdown, 6, 'Update')).not.toBeNull();
   });
 
-  it('step 7 is "Ask About Starring the Repo"', () => {
-    expect(extractWorkflowStep(markdown, 7, 'Ask About Starring the Repo')).not.toBeNull();
+  it('step 7 is "Create `.worktreeinclude`"', () => {
+    expect(extractWorkflowStep(markdown, 7, 'Create `.worktreeinclude`')).not.toBeNull();
   });
 
-  it('step 8 is "Create Document Directories"', () => {
-    expect(extractWorkflowStep(markdown, 8, 'Create Document Directories')).not.toBeNull();
+  it('step 8 is "Ask About Starring the Repo"', () => {
+    expect(extractWorkflowStep(markdown, 8, 'Ask About Starring the Repo')).not.toBeNull();
   });
 
-  it('step 9 is "Confirm and Guide"', () => {
-    expect(extractWorkflowStep(markdown, 9, 'Confirm and Guide')).not.toBeNull();
+  it('step 9 is "Create Document Directories"', () => {
+    expect(extractWorkflowStep(markdown, 9, 'Create Document Directories')).not.toBeNull();
+  });
+
+  it('step 10 is "Confirm and Guide"', () => {
+    expect(extractWorkflowStep(markdown, 10, 'Confirm and Guide')).not.toBeNull();
   });
 
   it('concurrent tasks step comes after config creation', () => {
@@ -307,7 +311,7 @@ describe('Init Command — Workflow Step Ordering', () => {
 
   it('concurrent tasks step comes before .gitignore update', () => {
     const concurrentPos = markdown.indexOf('### 3. Configure Concurrent Tasks');
-    const gitignorePos = markdown.indexOf('### 5. Update .gitignore');
+    const gitignorePos = markdown.indexOf('### 6. Update .gitignore');
     expect(concurrentPos).toBeGreaterThan(-1);
     expect(gitignorePos).toBeGreaterThan(concurrentPos);
   });

@@ -30,6 +30,29 @@ You are a senior engineering manager ensuring the successful delivery of a softw
 - Tactical excellence balanced with strategic vision
 - Commitment to on-time, on-budget delivery with high quality standards
 
+## Document Backend
+
+This command reads the implementation plan's task queue and writes task state back. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `implementation_plan` (read and write, including task state)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `implementation_plan_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- This is the one command that mutates task state, so it is the one most affected by the backend. Under `notion`, delegate every task read and write to `notion-task-store`:
+
+  | Workflow step | Task-store operation |
+  |---------------|---------------------|
+  | Step 1 — select work | `list_tasks` (workstream-filtered) |
+  | Step 3 — mark in progress | `update_task_status` with `in_progress` |
+  | Step 9 — mark done | `update_task_status` with `done`, then `annotate_task` |
+  | Error handling — blocker | `update_task_status` with `blocked` |
+
+- **The plan-complete check in Step 1 uses the workstream-filtered queue.** `list_tasks` returns only this project's rows, so "every task is `done`" means every Synthex task in this workstream, not every row in a shared database. That is the intended semantics — other teams' tickets are none of this command's business and must never gate its completion.
+- **Never resolve a task by ordinal.** Use the `task_ref` returned by `list_tasks`. Ordinals are display-only and get renumbered when tasks are inserted or removed; treating one as identity would silently retarget a write to the wrong row.
+- Acceptance-criteria evidence from Step 9 — `[T]` test linkage, `[H]` approval, and the `--auto-decide` decision record — goes through `annotate_task`. When `acceptance_criteria` is unmapped, the adapter records it in the task page body.
+
 ## Workflow
 
 ### 1. Analyze the Implementation Plan

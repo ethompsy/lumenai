@@ -315,7 +315,7 @@ describe('init.md — Multi-Model Review section (Task 47)', () => {
     // The confirmation block lives in init.md, not the wizard file.
     const hostContent = loadInitMdHost();
     expect(hostContent).toMatch(/docs\/reviews\//);
-    const confirmSection = extractSection(hostContent, 9, 'Confirm and Guide');
+    const confirmSection = extractSection(hostContent, 10, 'Confirm and Guide');
     expect(confirmSection).not.toBeNull();
     expect(confirmSection!).toContain('docs/reviews/');
   });
@@ -330,21 +330,22 @@ describe('init.md — Multi-Model Review section (Task 47)', () => {
     expect(mmrPos).toBeGreaterThan(concurrentPos);
   });
 
-  it('section 5 (update .gitignore) comes AFTER section 4 (multi-model)', () => {
+  it('section 6 (update .gitignore) comes AFTER section 4 (multi-model)', () => {
     const hostContent = loadInitMdHost();
     const mmrPos = hostContent.indexOf('### 4. Configure Multi-Model Review');
-    const gitignorePos = hostContent.indexOf('### 5. Update .gitignore');
+    const gitignorePos = hostContent.indexOf('### 6. Update .gitignore');
     expect(mmrPos).toBeGreaterThan(-1);
     expect(gitignorePos).toBeGreaterThan(mmrPos);
   });
 
-  it('sections renumbered correctly: 5=.gitignore, 6=.worktreeinclude, 7=star-repo, 8=create-dirs, 9=confirm', () => {
+  it('sections renumbered correctly: 5=notion, 6=.gitignore, 7=.worktreeinclude, 8=star-repo, 9=create-dirs, 10=confirm', () => {
     const hostContent = loadInitMdHost();
-    expect(hostContent).toContain('### 5. Update .gitignore');
-    expect(hostContent).toContain('### 6. Create `.worktreeinclude`');
-    expect(hostContent).toContain('### 7. Ask About Starring the Repo');
-    expect(hostContent).toContain('### 8. Create Document Directories');
-    expect(hostContent).toContain('### 9. Confirm and Guide');
+    expect(hostContent).toContain('### 5. Configure Notion Backend (optional)');
+    expect(hostContent).toContain('### 6. Update .gitignore');
+    expect(hostContent).toContain('### 7. Create `.worktreeinclude`');
+    expect(hostContent).toContain('### 8. Ask About Starring the Repo');
+    expect(hostContent).toContain('### 9. Create Document Directories');
+    expect(hostContent).toContain('### 10. Confirm and Guide');
   });
 
   // ── Anti-pattern: no API keys ────────────────────────────────────

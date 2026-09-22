@@ -17,11 +17,12 @@ Set up the Synthex plugin configuration for a project. This command scaffolds th
 1. **Creates the project configuration file** at `.synthex/config.yaml` (or custom path)
 2. **Prompts for concurrent task parallelism** — detects CPU count and asks the user to choose a concurrency level (Yolo, Aggressive, Default, or custom)
 3. **Configures multi-model review (optional)** — scans for installed CLIs, runs auth checks, and offers opt-in options for multi-model review
-4. **Updates `.gitignore`** to exclude the worktrees directory (`.claude/worktrees/`) if not already present
-5. **Creates `.worktreeinclude`** so Claude Code copies env files (e.g., `.env`, `.env.local`) into every new worktree
-6. **Asks about starring the repo** — offers to open the Lumenai marketplace on GitHub so the user can star it
-7. **Creates document directories** (`docs/reqs/`, `docs/plans/`, `docs/specs/`, `docs/specs/decisions/`, `docs/specs/rfcs/`, `docs/runbooks/`, `docs/retros/`) if they don't exist
-8. **Provides guidance** on customizing the configuration for your project
+4. **Configures the Notion backend (optional)** — offers to route documents and implementation-plan tasks into an existing Notion workspace
+5. **Updates `.gitignore`** to exclude the worktrees directory (`.claude/worktrees/`) if not already present
+6. **Creates `.worktreeinclude`** so Claude Code copies env files (e.g., `.env`, `.env.local`) into every new worktree
+7. **Asks about starring the repo** — offers to open the Lumenai marketplace on GitHub so the user can star it
+8. **Creates document directories** (`docs/reqs/`, `docs/plans/`, `docs/specs/`, `docs/specs/decisions/`, `docs/specs/rfcs/`, `docs/runbooks/`, `docs/retros/`) if they don't exist
+9. **Provides guidance** on customizing the configuration for your project
 
 ## Workflow
 
@@ -108,7 +109,13 @@ Replace **both** `concurrent_tasks` values in the config file at `@{config_path}
 
 Delegate to the `/synthex:configure-multi-model` wizard at `plugins/synthex/commands/configure-multi-model.md`. Read that file and follow Steps 1a–1d (Detection Scan, Surface Three Options, Data-Transmission Warning, Apply the Chosen Option) inline as part of `init`. Skip Step 0 (re-entry check) — `init` always invokes the wizard in fresh-configuration mode.
 
-### 5. Update .gitignore
+### 5. Configure Notion Backend (optional)
+
+Delegate to the `/synthex:configure-notion` wizard at `plugins/synthex/commands/configure-notion.md`. Read that file and follow Steps 1–8 (MCP Availability Check through Confirm) inline as part of `init`. Skip Step 0 (re-entry check) — `init` always invokes the wizard in fresh-configuration mode.
+
+The wizard exits cleanly on its own when the Notion MCP server is unavailable, which is the common case. That is not an error for the project: Synthex keeps using local markdown files. **A skipped or unavailable Notion setup must never abort `init`.**
+
+### 6. Update .gitignore
 
 Check if `.gitignore` exists in the project root. Ensure it contains entries for **three** synthex-managed paths:
 
@@ -135,7 +142,7 @@ Concretely, the resulting block to append (omitting any lines already present) i
 .synthex/loops/
 ```
 
-### 6. Create `.worktreeinclude`
+### 7. Create `.worktreeinclude`
 
 Claude Code's built-in worktree support (`claude --worktree`, subagent `isolation: worktree`) creates a fresh checkout that does NOT include gitignored files like `.env`. A `.worktreeinclude` file at the project root tells Claude Code which gitignored files to copy into each new worktree, using `.gitignore` syntax. Only files that both match a pattern AND are gitignored get copied — tracked files are never duplicated.
 
@@ -154,15 +161,15 @@ Check if `.worktreeinclude` exists in the project root.
 
 - **If it already exists:** Do not overwrite or modify it. Inform the user briefly: ".worktreeinclude already exists — left unchanged."
 
-The file is committed to the repo so the whole team benefits from the same worktree-population behavior. Mention this in the confirmation step (Step 9).
+The file is committed to the repo so the whole team benefits from the same worktree-population behavior. Mention this in the confirmation step (Step 10).
 
-### 7. Ask About Starring the Repo
+### 8. Ask About Starring the Repo
 
 After the configuration scaffolding is in place, ask the user whether they'd like to star the Lumenai marketplace repository on GitHub. Stars help more developers find the project — which means more eyeballs for new features and bug fixes.
 
 Delegate to the `/synthex:star` command at `plugins/synthex/commands/star.md`. Read that file and follow Steps 2 and 3 (Ask the user → Apply the user's choice) inline as part of `init`. Skip Step 1 (the state-existence check) — `init` has already ensured `.synthex/` exists. If the user picks "Maybe later", do nothing extra; the upgrade-nudge hook will surface the prompt again on the next version bump.
 
-### 8. Create Document Directories
+### 9. Create Document Directories
 
 Create the following directories if they don't already exist:
 - `docs/reqs/` — Product requirements documents
@@ -175,7 +182,7 @@ Create the following directories if they don't already exist:
 
 Do NOT create any files inside these directories — just the directories.
 
-### 9. Confirm and Guide
+### 10. Confirm and Guide
 
 Inform the user what was created and provide guidance:
 

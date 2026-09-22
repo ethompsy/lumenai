@@ -22,6 +22,19 @@ You facilitate the creation of a well-structured ADR by:
 
 ---
 
+## Document Backend
+
+This command writes an Architecture Decision Record. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `decisions` (write)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `decisions_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- Each ADR is a new document, so use `create` rather than `write`. Never overwrite an existing ADR page — superseding an ADR means writing a new one that references the old, exactly as on the filesystem.
+- ADRs are read by the `architect` agent and by `review-code`'s spec-compliance check on every invocation. Teams that care about review latency usually leave `decisions` on the filesystem; that is a legitimate choice and this command works either way.
+
 ## Workflow
 
 ### 1. Load Configuration

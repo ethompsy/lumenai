@@ -23,6 +23,20 @@ You orchestrate a structured retrospective by:
 
 ---
 
+## Document Backend
+
+This command reads the implementation plan and writes a retrospective document. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
+
+**Document types touched:** `implementation_plan` (read), `retros` (read prior, write new)
+
+**When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `implementation_plan_path`, `retrospective.output_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Command-specific notes**
+
+- Step 4 reads the **previous** retrospective to compute follow-through. Under the `notion` backend use `list` on the `retros` type and pick the most recent; do not assume filesystem directory ordering.
+- Step 6 creates a new document, so use `create`. Prior retrospectives are read-only — never modify one.
+- Step 3's planned-vs-actual analysis needs task state. When `implementation_plan` resolves to `notion`, read it via `notion-task-store` `list_tasks` so the analysis covers this workstream's rows only.
+
 ## Workflow
 
 ### 1. Load Configuration
