@@ -527,6 +527,15 @@ notion:
   # If null, `/synthex:configure-notion` offers to create one.
   tasks_database: null
 
+  # Resolved page IDs per document type, as a map of <doc_type>: <page id>.
+  # `/synthex:configure-notion` writes these as it nominates or creates each
+  # target. This is the deterministic resolution path and it survives a page
+  # being renamed; without an entry, Synthex falls back to matching a child of
+  # `docs_root` by title, which fails rather than guessing if several match.
+  # Populated by the wizard — you should not need to edit this by hand.
+  # Must be a map, never a list.
+  targets: {}
+
   # Workstream scoping (FR-NB4) — the multi-team safety guarantee, and the
   # reason this integration can point at a live shared board at all.
   # Every row Synthex creates is stamped with `value`, and EVERY query Synthex
@@ -535,13 +544,24 @@ notion:
   # Both keys are required when `tasks_database` is set. Synthex refuses to run
   # unscoped against a shared database — falling back to an unfiltered query is
   # never an acceptable degradation.
+  #
+  # The PROPERTY is a fact about your database's schema, so it is set once here.
+  # The VALUE identifies one initiative, and a repo commonly has several in
+  # flight at once — so each implementation plan carries its own value on a
+  # `**Workstream:**` line beneath its H1. Resolution, first match wins:
+  #   the plan's `**Workstream:**` line  >  `value` below  >  refuse to run
+  # Binding the value to the plan makes targeting the wrong initiative
+  # structurally impossible: a command cannot touch task rows without having
+  # read the plan those rows belong to, and that plan names its workstream.
   workstream:
     # Name of an existing property in `tasks_database` used to scope our rows.
     # Any property type that can be filtered for equality works: select,
-    # multi-select, relation, or plain text.
+    # multi-select, status, relation, or plain text.
     property: null
-    # This project's workstream identifier — the value Synthex stamps and
-    # filters on, e.g. "Checkout Revamp".
+    # Default workstream value, used only for plans that do not declare their
+    # own. Single-initiative projects can just set this and never think about
+    # it. Multi-initiative repos should leave it null and let each plan speak
+    # for itself, so a plan can never silently inherit the wrong epic.
     value: null
 
   # Maps Synthex's canonical task fields onto your database's actual property

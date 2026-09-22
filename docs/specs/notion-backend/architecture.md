@@ -99,6 +99,16 @@ Step 3 is what makes the guarantee true for writes rather than merely for reads.
 
 A consequence worth stating plainly: `next-priority`'s "all tasks done" check operates on the workstream-filtered queue. Other teams' tickets never gate Synthex's completion, which is the intended semantics.
 
+### The value belongs to the plan, not to config
+
+Scoping by a single configured value separates Synthex from other *teams* but not one of its own initiatives from another. A repository commonly runs several concurrently — Synthex already supports that on the filesystem, where each initiative is its own plan document — and a shared value would make their rows indistinguishable. `list_tasks` for one epic would return the other's work, and the plan-complete check would never fire until both finished.
+
+So the **property** stays in config, because it describes the database's schema, while the **value** is carried by each plan on a `**Workstream:**` line beneath its H1. Commands resolve it from the plan, falling back to `notion.workstream.value` only for plans that do not declare one.
+
+This is the same move as the pre-write verification in §5: convert a rule someone has to remember into a property of the structure. A command cannot touch task rows without having read the plan those rows belong to, and that plan names its own workstream — so there is no flag to forget and no config entry to drift out of sync. The cost is one plan read before the first task operation, which every one of these commands performs anyway.
+
+The adapter contract is untouched by this. Callers resolve the value and pass it in; `notion-task-store` never reads plan documents and simply refuses when either half of the pair is absent.
+
 ---
 
 ## 6. Schema adaptation

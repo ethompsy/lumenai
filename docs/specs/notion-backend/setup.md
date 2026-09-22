@@ -82,6 +82,32 @@ The consequences are worth being explicit about:
 
 If your database has no property suitable for this, the wizard offers to add one (a single additive property, with your explicit confirmation) or to use a separate database instead.
 
+### Running more than one initiative at once
+
+The `property` above is set once, because it describes your database. The **value** is per initiative, and it lives on the plan rather than in config — each implementation plan names its own workstream on a line beneath its H1:
+
+```markdown
+# Implementation Plan: Billing Migration
+
+**Workstream:** Billing Migration
+```
+
+So two concurrent epics stay cleanly separated with no config juggling:
+
+```
+/synthex:next-priority --implementation_plan_path docs/plans/checkout.md
+  -> reads "Checkout Revamp" from that plan, queries only those rows
+
+/synthex:next-priority --implementation_plan_path docs/plans/billing.md
+  -> reads "Billing Migration" from that plan, queries only those rows
+```
+
+Each run's "all tasks complete" covers only its own initiative, so finishing checkout does not wait on billing.
+
+`notion.workstream.value` in config is just a default for plans that do not declare one. **If you run several initiatives, leave it null** — then a new plan can never silently inherit another epic's identifier; it has to say what it is. If you only ever have one initiative, setting the default means you can ignore workstreams entirely.
+
+Synthex will not guess a value from a filename, branch, or plan title. A guessed value that matches no rows returns an empty queue, which looks exactly like "all work complete" — so a missing value is an error you will hear about rather than a silent no-op.
+
 **Synthex will not run tasks unscoped.** There is no flag to disable this and strict mode does not exempt it. If no workstream can be resolved, the wizard configures documents only and tells you why.
 
 ---

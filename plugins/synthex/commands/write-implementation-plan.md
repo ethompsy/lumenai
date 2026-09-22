@@ -61,7 +61,8 @@ This command a PRD and writes an implementation plan. When the Notion backend is
 **Command-specific notes**
 
 - Under the `notion` backend the finished plan is written as two things, not one: the prose sections (Overview, Decisions, Open Questions, milestone summaries) go to the plan overview page via `notion-document-store`, and each task becomes a row in the task database via `notion-task-store`. Step 7 below writes both.
-- Create task rows with the canonical status `pending`. The adapter translates that to whatever the target database calls it.
+- **Set the plan's `**Workstream:**` line.** Every plan records the initiative it belongs to beneath its H1. Default it to the plan's own initiative name and confirm with the user; if the project config already names a `notion.workstream.value` and this is the repository's only plan, that value is a reasonable default. Do not derive one silently from a filename or branch — a value matching no rows yields an empty task queue that reads as "all work complete."
+- Create task rows with the canonical status `pending`, stamped with that workstream value. The adapter translates the status to whatever the target database calls it.
 - When the task database has no property mapped for `complexity`, `milestone`, or `dependencies`, the adapter reports a degradation and that data belongs in the overview page instead. Keep it in the plan prose rather than inventing a property for it.
 - The `plan-linter` structural audit in Step 5.5 runs against the **draft markdown**, before any backend write. It is unaffected by this section.
 
@@ -349,6 +350,8 @@ The implementation plan will follow this structure:
 
 ```markdown
 # Implementation Plan: [Product Name]
+
+**Workstream:** [This initiative's workstream identifier]
 
 ## Overview
 [Brief summary linking back to the PRD. Keep this to 2-3 sentences.]

@@ -126,8 +126,129 @@ describe('FR-NB4: workstream scoping', () => {
     it('tells the user the guarantee in the confirmation output', () => {
       // The user should finish the wizard knowing what Synthex will and will
       // not touch.
-      expect(wizard).toMatch(/only reads and writes task rows tagged/);
+      expect(wizard).toMatch(/only touches task rows tagged/);
       expect(wizard).toMatch(/other rows are never queried or modified/);
+    });
+
+    it('asks only for an optional default value, not a mandatory one', () => {
+      // The authoritative value lives on each plan; a mandatory config value
+      // is what creates the multi-initiative collision.
+      expect(wizard).toMatch(/Default workstream value \(optional\)/);
+      expect(wizard).toMatch(/A null default is not an error/);
+    });
+
+    it('steers multi-initiative repos away from a shared default', () => {
+      expect(wizard).toMatch(/Several initiatives at once\?\*\* Leave this blank/);
+      expect(wizard).toMatch(/never silently inherit another epic's identifier/);
+    });
+
+    it('distinguishes a missing property from a null default value', () => {
+      const rules = wizard.split('## Behavioral Rules')[1] ?? '';
+      expect(rules).toMatch(/No workstream property means documents-only/);
+      expect(rules).toMatch(/A null default \*value\* is fine/);
+    });
+
+    it('forbids deriving a workstream value', () => {
+      const rules = wizard.split('## Behavioral Rules')[1] ?? '';
+      expect(rules).toMatch(/Never derive a workstream value/);
+      expect(rules).toMatch(/empty queue that reads as "all work complete/);
+    });
+  });
+
+  describe('Workstream value is carried by the plan, not by config', () => {
+    // A single configured value makes every initiative's rows
+    // indistinguishable, so `list_tasks` for one epic returns another's work
+    // and the plan-complete check never fires. Binding the value to the plan
+    // makes targeting the wrong initiative structurally impossible.
+    let sharedDoc: string;
+    let planTemplate: string;
+    let nextPriority: string;
+    let linter: string;
+    let scribe: string;
+
+    beforeAll(() => {
+      sharedDoc = read('docs/document-backends.md');
+      planTemplate = read('commands/write-implementation-plan.md');
+      nextPriority = read('commands/next-priority.md');
+      linter = read('agents/plan-linter.md');
+      scribe = read('agents/plan-scribe.md');
+    });
+
+    it('contract separates the workspace-wide property from the per-plan value', () => {
+      expect(contract).toMatch(/^### The property is workspace-wide; the value is per-plan$/m);
+      expect(contract).toMatch(/several in flight at once/);
+    });
+
+    it('contract states the value resolution order', () => {
+      expect(contract).toMatch(/`\*\*Workstream:\*\*` line — \*\*authoritative\*\*/);
+      expect(contract).toMatch(/a default for plans that do not declare one/);
+      expect(contract).toMatch(/refuse to operate on tasks/);
+    });
+
+    it('contract explains why binding to the plan closes the hole', () => {
+      expect(contract).toMatch(/structurally impossible rather than merely discouraged/);
+      expect(contract).toMatch(/no flag to forget and no config entry to fall out of sync/);
+    });
+
+    it('contract assigns value resolution to the caller, not the adapter', () => {
+      expect(contract).toMatch(/\*\*Callers resolve the value; adapters do not\.\*\*/);
+      expect(contract).toMatch(/adapter's input contract is unchanged/);
+    });
+
+    it('task store refuses when the caller omits the value', () => {
+      expect(taskStore).toMatch(/You do not resolve the value yourself/);
+      expect(taskStore).toMatch(/a caller trying to run unscoped, whatever the reason/);
+    });
+
+    it('shared mechanics tell commands to resolve from the plan first', () => {
+      expect(sharedDoc).toMatch(/Resolve the workstream value from the plan — before touching any task/);
+      expect(sharedDoc).toMatch(/resolving the value is the caller's job/);
+    });
+
+    it('a plan-declared value beats config, with the discrepancy surfaced', () => {
+      expect(sharedDoc).toMatch(/it wins, even if config names a different one/);
+      expect(sharedDoc).toMatch(/mention it once in your output/);
+    });
+
+    it('both plan templates carry the Workstream line', () => {
+      for (const [name, text] of [
+        ['write-implementation-plan', planTemplate],
+        ['product-manager', read('agents/product-manager.md')],
+      ] as const) {
+        expect(text, `${name} template missing the line`).toMatch(
+          /\*\*Workstream:\*\* \[This initiative's workstream identifier\]/,
+        );
+      }
+    });
+
+    it('next-priority resolves the value before any task operation', () => {
+      expect(nextPriority).toMatch(/Resolve the workstream value from the plan first/);
+      expect(nextPriority).toMatch(/plan-complete check would never fire/);
+    });
+
+    it('plan-linter checks for the line without inventing one', () => {
+      expect(linter).toMatch(/`\*\*Workstream:\*\*` line present beneath the H1/);
+      expect(linter).toMatch(/Do \*\*not\*\* invent a value when it is missing/);
+    });
+
+    it('plan-scribe preserves the line verbatim', () => {
+      expect(scribe).toMatch(/^### Preserve the `\*\*Workstream:\*\*` line$/m);
+      expect(scribe).toMatch(/Never remove it, never rewrite its value/);
+    });
+
+    it('nobody derives a value from a filename, branch, or title', () => {
+      // A derived value that matches no rows returns an empty queue, which is
+      // indistinguishable from "all work complete".
+      for (const [name, text] of [
+        ['shared mechanics', sharedDoc],
+        ['write-implementation-plan', planTemplate],
+        ['plan-linter', linter],
+        ['configure-notion', wizard],
+      ] as const) {
+        expect(text, `${name} omits the do-not-derive rule`).toMatch(
+          /all work complete/,
+        );
+      }
     });
   });
 

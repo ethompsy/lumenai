@@ -68,6 +68,8 @@ The implementation guarantee is stronger than "produces the same result": comman
 
 The contract defines six operations for prose documents: `resolve`, `read`, `write`, `patch`, `create`, `list`. Handles are opaque; callers MUST NOT parse or construct them.
 
+Targets resolve in the order: explicit caller `ref` → `notion.targets.<doc_type>` (written by the wizard as it nominates or creates each page; deterministic and survives a rename) → a title-matched child of `notion.docs_root`, which MUST fail rather than choose when several match.
+
 `patch` is section-scoped and MUST be preferred over `write` whenever a change is localized, because a full-document `write` discards a human's concurrent edits to sections Synthex never intended to touch. A person editing a Notion page while Synthex works is routine.
 
 ### FR-NB4: Workstream scoping
@@ -80,7 +82,13 @@ The contract defines six operations for prose documents: `resolve`, `read`, `wri
 
 A backend that cannot scope its queries MUST refuse to operate against a shared database. An unscoped fallback is **never** an acceptable degradation, is not exempted by strict mode, and has no override: reading other teams' tickets is a privacy problem and mutating them is a correctness problem, and both fail silently until someone notices a ticket they own has the wrong status.
 
-Configuration MUST NOT be able to produce an unscoped task setup. Where no workstream can be resolved, the wizard configures documents only.
+Configuration MUST NOT be able to produce an unscoped task setup. Where no workstream property can be resolved, the wizard configures documents only.
+
+**The property is workspace-wide; the value is per-plan.** The property describes the target database's schema and is configured once. The value identifies a single initiative, and a repository commonly runs several concurrently — Synthex already supports this on the filesystem, where each initiative is its own plan document. A single configured value would make every initiative's rows indistinguishable, so `list_tasks` for one epic would return another's work and the plan-complete check would never fire until both finished.
+
+Every implementation plan therefore records its own value on a `**Workstream:**` line beneath its H1. Resolution order for the value: the plan's line (authoritative) → `notion.workstream.value` (a default for plans that do not declare one) → `schema_mismatch`.
+
+Binding the value to the plan makes targeting the wrong initiative structurally impossible rather than merely discouraged: a command cannot query or write task rows without having read the plan those rows belong to, and that plan names its workstream. There is no flag to forget and no config entry to drift. A value MUST NOT be derived from a filename, branch, or title — a derived value matching no rows returns an empty queue, which is indistinguishable from "all work complete".
 
 ### FR-NB5: Property mapping and graceful degradation
 
@@ -189,4 +197,4 @@ Two exceptions: a workstream-scoping failure never degrades to an unscoped query
 |---|----------|--------|
 | Q1 | When a task row is deleted in Notion but still present in the local plan, is that a deletion to honor or drift to report? Reporting is the safer default. | Open |
 | Q2 | Should `specs` default to `filesystem` even under a global `backend: notion`, given `review-code` reads specs on every invocation? | Open |
-| Q3 | Is one workstream value per project sufficient, or do multi-initiative repositories need a value per plan document? | Open |
+| Q3 | Is one workstream value per project sufficient, or do multi-initiative repositories need a value per plan document? | **Resolved** — per plan document. One value per project collides as soon as a repository runs two initiatives at once, which is the common case. Each plan carries its own value on a `**Workstream:**` line; `notion.workstream.value` remains a default for single-initiative projects. See FR-NB4. |

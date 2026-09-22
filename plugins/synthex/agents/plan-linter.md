@@ -45,11 +45,28 @@ Every draft implementation plan must satisfy these checks. Each violation is a f
 | Check | Severity if Missing | Rationale |
 |-------|---------------------|-----------|
 | `# Implementation Plan:` header present | HIGH | Template violation |
+| `**Workstream:**` line present beneath the H1 | MEDIUM | Binds the plan to its initiative; a plan without one falls back to the configured default, which is the wrong epic in a multi-initiative repo |
 | `## Overview` section present | MEDIUM | Orientation for readers |
 | `## Decisions` section present | HIGH | Records planning rationale |
 | `## Open Questions` section present | HIGH | Tracks unresolved items |
 | At least one `## Phase` section | CRITICAL | Plan has no content |
 | Each phase has a "Delivers X Value" in its name | MEDIUM | Enforces incremental-value framing |
+
+#### On the `**Workstream:**` line
+
+The line names the initiative this plan belongs to, immediately beneath the H1:
+
+```markdown
+# Implementation Plan: Billing Migration
+
+**Workstream:** Billing Migration
+```
+
+It is what scopes the plan's task rows when the plan is backed by a shared tracker, so a plan that omits it inherits whatever default the project config names — which, in a repository running several initiatives at once, is another epic's identifier.
+
+MEDIUM rather than HIGH because the fallback exists and a single-initiative project is unaffected. Flag it; do not block on it.
+
+Do **not** invent a value when it is missing. Report the omission and let the PM supply it — a guessed identifier that matches no rows produces an empty task queue, which reads as "all work complete."
 
 ### Milestone-Level Checks
 

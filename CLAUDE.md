@@ -215,6 +215,8 @@ Synthex's documents and implementation-plan task state can be routed into an **e
 
 The design commitment is bolt-on compatibility: Synthex roots documents under a page you nominate, writes task rows into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a workstream identifier so it coexists with other teams' work. It never restructures a workspace and never changes a database schema without explicit consent. Access is via the Notion MCP server — Synthex holds no Notion API key.
 
+Each implementation plan carries its own workstream value on a `**Workstream:**` line beneath its H1, so a repository running several initiatives concurrently keeps them cleanly separated — a command cannot touch task rows without having read the plan those rows belong to.
+
 Run `/synthex:configure-notion` to set it up. See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for the setup guide, [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design, and [`plugins/synthex/agents/_shared/document-store-contract.md`](plugins/synthex/agents/_shared/document-store-contract.md) for the normative contract.
 
 ## Project Configuration Framework
@@ -298,7 +300,9 @@ See `plugins/synthex/config/defaults.yaml` for the full reference. Key settings:
 | `notion.strict_mode` | `false` | `false` falls back to filesystem on error; `true` aborts |
 | `notion.docs_root` | `null` | Existing Notion page to create document pages under |
 | `notion.tasks_database` | `null` | Existing Notion database to write task rows into |
-| `notion.workstream` | `{property: null, value: null}` | Scopes every row Synthex reads or writes. Required for tasks — Synthex refuses to run unscoped |
+| `notion.targets` | `{}` | Resolved page ID per document type, written by the wizard. Deterministic and survives a page rename |
+| `notion.workstream.property` | `null` | Database property used to scope every row Synthex reads or writes. Required for tasks — Synthex refuses to run unscoped |
+| `notion.workstream.value` | `null` | **Default only.** Each implementation plan declares its own workstream on a `**Workstream:**` line beneath its H1, which takes precedence. Multi-initiative repos should leave this null so a plan can never inherit another epic's identifier |
 | `notion.property_map` | `{}` | Canonical task field → the target database's property name |
 | `notion.status_values` | `{}` | Canonical task state → the target database's option name |
 

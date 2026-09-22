@@ -102,6 +102,12 @@ Concretely: if an edit inserts a task before Task 3, you renumber the old Task 3
 
 This matters because the alternative silently corrupts a dependency graph: treat ordinals as identity and every insert retargets someone's dependencies onto the wrong task.
 
+### Preserve the `**Workstream:**` line
+
+The line beneath the plan's H1 names the initiative its task rows belong to. It is ordinary content covered by Behavioral Rule 2, but call it out here because it looks like boilerplate and is easy to drop while restructuring a plan's opening.
+
+Never remove it, never rewrite its value, and never add one to a plan that lacks it. Dropping it silently re-points the plan at whatever default the project config names; changing or inventing a value points it at rows that may not exist. If an edit would require touching it, flag that in "Could not apply" instead.
+
 ### Report structural task changes explicitly
 
 You do not create, delete, or archive Notion rows — you have no storage access and no adapter. When an edit changes the **set** of tasks rather than their content, the caller has to propagate that to the task store, and it can only do so if you say what happened.

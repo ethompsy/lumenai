@@ -115,7 +115,20 @@ Present them:
 > 2. **Add a `Workstream` property** — Synthex adds one select property to your database. This is a schema change and needs your explicit confirmation.
 > 3. **Use a separate database instead** — Synthex creates its own task database, leaving yours untouched.
 
-Then collect the workstream **value** for this project.
+Then handle the **value**.
+
+The property you just picked is a fact about the database's schema, so it is stored in config. The value identifies a single initiative, and a repository often has several in flight at once — so **each implementation plan carries its own value** on a `**Workstream:**` line beneath its H1, and commands read it from there. That is what stops a run from operating on the wrong epic: a command cannot touch task rows without having read the plan those rows belong to.
+
+So ask only for a *default*, and make clear it is optional:
+
+> **Default workstream value (optional)**
+>
+> Each implementation plan names its own workstream, so Synthex reads the value from the plan it is working on. This default only applies to plans that do not declare one.
+>
+> - **One initiative in this repo?** Setting a default here is convenient — you can ignore workstreams from now on.
+> - **Several initiatives at once?** Leave this blank. Each plan should speak for itself, so a new plan can never silently inherit another epic's identifier.
+
+Record the answer as `notion.workstream.value`, or leave it null if the user declines. A null default is not an error — it means every plan must declare its own, which is the safer configuration.
 
 **If the user picks option 2**, confirm the schema change explicitly before making it, naming the database and the property:
 
@@ -202,12 +215,15 @@ notion:
   enabled: true
   docs_root: <resolved page id>
   tasks_database: <resolved database id>
+  targets: { <doc_type>: <resolved page id>, ... }
   workstream:
     property: <property name>
-    value: <this project's identifier>
+    value: <default value, or null>
   property_map: { <canonical>: <their property>, ... }
   status_values: { <canonical>: <their option>, ... }
 ```
+
+Write a `targets` entry for every document type whose page you resolved or created in Step 2. This is the deterministic resolution path and it survives the page being renamed later; without it, Synthex has to match a child of `docs_root` by title and will fail rather than guess if several match.
 
 Leave `strict_mode` at its default unless the user asked to change it.
 
@@ -220,15 +236,19 @@ Notion backend configured.
 
   Documents root:   <page title>
   Task database:    <database name>
-  Workstream:       <property> = <value>
+  Workstream:       <property> = <default value, or "per-plan (no default)">
   In Notion:        <list of doc types>
   Local markdown:   <list of remaining doc types>
 
   Mapped:           <canonical -> property list>
   Not mapped:       <list>  (recorded in the plan overview page instead)
 
-Synthex only reads and writes task rows tagged <property> = <value>.
-Your other rows are never queried or modified.
+Each implementation plan names its own workstream on a **Workstream:** line
+beneath its H1. Synthex reads that value and only touches task rows tagged
+<property> = <that value>. Your other rows are never queried or modified.
+
+With more than one initiative in this repo, give each plan its own value and
+they stay cleanly separated.
 
 Re-run /synthex:configure-notion any time to change this, or to disable it.
 ```
@@ -237,11 +257,12 @@ Re-run /synthex:configure-notion any time to change this, or to disable it.
 
 1. **Never auto-select a target.** Ambiguous search results are presented, not resolved.
 2. **Never change a schema without explicit confirmation**, and default that confirmation to no.
-3. **Never enable tasks unscoped.** No workstream means documents-only configuration.
-4. **Never write credentials to config.**
-5. **Verify every target by fetching it** before writing it to config.
-6. **Show degradations plainly.** The user should finish this wizard knowing exactly which fields are not queryable.
-7. **Exit cleanly when the MCP is unavailable.** That is not an error state for the project — local markdown keeps working.
+3. **Never enable tasks unscoped.** No workstream property means documents-only configuration. A null default *value* is fine — plans supply their own.
+4. **Never derive a workstream value.** Not from a repo name, a branch, or a plan filename. A value matching no rows yields an empty queue that reads as "all work complete."
+5. **Never write credentials to config.**
+6. **Verify every target by fetching it** before writing it to config.
+7. **Show degradations plainly.** The user should finish this wizard knowing exactly which fields are not queryable.
+8. **Exit cleanly when the MCP is unavailable.** That is not an error state for the project — local markdown keeps working.
 
 ## Source Authority
 

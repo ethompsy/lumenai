@@ -9,6 +9,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { loadDefaultsYaml, loadDefaultsYamlText } from '../helpers/load-defaults';
 
 /** Asserts an explanatory comment appears within 8 lines above `key`. */
@@ -89,6 +91,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       'strict_mode',
       'docs_root',
       'tasks_database',
+      'targets',
       'workstream',
       'property_map',
       'status_values',
@@ -99,6 +102,12 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
     it('ships no targets configured', () => {
       expect(cfg.notion.docs_root).toBeNull();
       expect(cfg.notion.tasks_database).toBeNull();
+      expect(cfg.notion.targets).toEqual({});
+    });
+
+    it('documents targets as the deterministic, rename-surviving path', () => {
+      expect(content).toMatch(/deterministic resolution path/);
+      expect(content).toMatch(/survives a page\s*#?\s*being renamed/);
     });
 
     it('ships workstream unconfigured with both subkeys present', () => {
@@ -110,6 +119,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       'strict_mode:',
       'docs_root:',
       'tasks_database:',
+      'targets:',
       'workstream:',
       'property_map:',
       'status_values:',
@@ -125,6 +135,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       ['documents.backend_overrides', () => cfg.documents.backend_overrides],
       ['notion.property_map', () => cfg.notion.property_map],
       ['notion.status_values', () => cfg.notion.status_values],
+      ['notion.targets', () => cfg.notion.targets],
     ])('%s is a map', (_name, get) => {
       const value = get();
       expect(Array.isArray(value)).toBe(false);
@@ -170,6 +181,34 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
 
     it('points users at the wizard instead of hand-editing', () => {
       expect(content).toMatch(/\/synthex:configure-notion/);
+    });
+  });
+
+  describe('Adapters only reference config keys that exist', () => {
+    // A dangling `config.<key>` reference shipped once already: the adapters
+    // pointed at `config.targets` after it was dropped from this file during a
+    // simplification pass, so an implementer would have gone looking for
+    // configuration that did not exist. This catches that class of drift in
+    // either direction.
+    const ADAPTERS = [
+      'agents/notion-document-store.md',
+      'agents/notion-task-store.md',
+    ] as const;
+
+    const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'synthex');
+
+    it.each(ADAPTERS)('%s references only real notion config keys', (rel) => {
+      const text = readFileSync(join(PLUGIN, rel), 'utf8');
+      const referenced = new Set(
+        [...text.matchAll(/\bconfig\.([a-z_]+)/g)].map((m) => m[1]),
+      );
+      expect(referenced.size).toBeGreaterThan(0);
+      for (const key of referenced) {
+        expect(
+          Object.prototype.hasOwnProperty.call(cfg.notion, key),
+          `${rel} references config.${key}, which is not a key under notion: in defaults.yaml`,
+        ).toBe(true);
+      }
     });
   });
 

@@ -81,6 +81,8 @@ Verify all of the following against the fetched schema:
 
 If any check fails, return `error_code: schema_mismatch` with an `error_message` naming the specific failure and pointing at `/synthex:configure-notion`.
 
+**You do not resolve the value yourself.** `config.workstream.property` comes from project config, but `config.workstream.value` is resolved by your **caller**, which reads it from the plan document's `**Workstream:**` line (falling back to the configured default). You never read plan documents. Your job is to verify both fields arrived and refuse if either did not — a caller that omits the value is a caller trying to run unscoped, whatever the reason.
+
 **You MUST NOT proceed unscoped.** There is no degradation path here, no `strict_mode` exemption, and no "just this once." An unscoped query against a shared database reads other teams' tickets; an unscoped write mutates them. Both are unacceptable outcomes, and both are silent — nobody finds out until a ticket they own has the wrong status. If you cannot scope, you fail.
 
 ### Step 2 — Map Properties, Never Migrate Schema (FR-NB5)

@@ -81,6 +81,32 @@ Two cases override the above:
 
 Only relevant to commands that read or write implementation-plan task state.
 
+### Resolve the workstream value from the plan — before touching any task
+
+The workstream **property** comes from `notion.workstream.property`. The **value** comes from the plan, because a repository usually has several initiatives in flight and one configured value would make their rows indistinguishable.
+
+Read the plan first, then take its value in this order:
+
+1. The plan's `**Workstream:**` line, immediately beneath its H1 — **authoritative**
+2. `notion.workstream.value` — a default for plans that do not declare one
+3. Neither → report `schema_mismatch` and do **not** touch tasks
+
+Pass the resolved pair to the task store as its `workstream` config. The task store never reads plan documents; resolving the value is the caller's job.
+
+```markdown
+# Implementation Plan: Billing Migration
+
+**Workstream:** Billing Migration
+```
+
+This ordering is what stops a command from operating on the wrong epic. You cannot query or write task rows without having read the plan those rows belong to, and that plan names its own workstream — so there is no flag to forget and no config entry to drift.
+
+**When a plan declares a value, it wins, even if config names a different one.** Config is a default, not an override. If the two differ, mention it once in your output so the discrepancy is visible, then proceed with the plan's value.
+
+**Never invent a value.** Not from the plan's title, not from the filename, not from the branch. A derived value that happens to match nothing silently returns an empty queue, which looks exactly like "all work complete." Missing means `schema_mismatch`.
+
+### Other task specifics
+
 - **Status vocabulary.** Work in the canonical enum — `pending`, `in_progress`, `done`, `blocked`. The adapter translates to and from the workspace's own option names. Never write a workspace-specific label like `"Shipped"` across the contract boundary.
 - **Identity.** A task's identity is its `task_ref`, which is opaque. `ordinal` is display-only and gets renumbered whenever tasks are inserted or removed. Never look a task up by ordinal and never treat a renumber as re-identifying a task.
 - **Prose vs. rows.** Under the `notion` backend an implementation plan is two things: an overview page holding the prose sections (Overview, Decisions, Open Questions, milestone summaries) and a set of task rows in the task database. Read and write each through the matching adapter.
