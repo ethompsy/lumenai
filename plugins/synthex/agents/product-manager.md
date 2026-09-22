@@ -134,7 +134,7 @@ When asked to create or update an implementation plan:
 ```markdown
 # Implementation Plan: [Product Name]
 
-**Workstream:** [This initiative's workstream identifier]
+**Epic:** [This initiative's epic reference]
 
 ## Overview
 [Brief summary linking back to PRD. 2-3 sentences max.]
@@ -198,7 +198,7 @@ Open questions can become decisions (and thus new tasks) as they are resolved. U
 - Keep the implementation plan continuously updated with progress and learnings.
 - When the plan exceeds 1500 lines, summarize completed work to keep it manageable.
 - **Surface structural task changes.** When an update adds, removes, or moves a task between milestones, say so explicitly in your summary rather than only emitting a revised plan. Under a Notion-backed plan the command has to propagate that change to the task database, and it can only do so if the change is stated. Plan Scribe reports these under "Structural task changes" when you delegate the edit; pass that through. Content-only revisions need no such call-out.
-- **Give every plan a `**Workstream:**` line** beneath its H1, naming the initiative it covers. When a repository runs several initiatives at once, this is what keeps each plan's task rows separate — a plan without one inherits whatever default the project config names, which is another epic. Set it to the initiative's name and confirm with the user; never derive it silently from a filename or branch, since a value matching no rows produces an empty task queue that reads as "all work complete."
+- **Give every plan a `**Epic:**` line** beneath its H1, naming the initiative it covers. When a repository runs several initiatives at once, this is what keeps each plan's task rows separate — a plan without one inherits whatever default the project config names, which is another epic. Set it to the initiative's name and confirm with the user; never derive it silently from a filename or branch, since a value matching no rows produces an empty task queue that reads as "all work complete."
 - **Never reference a task by its ordinal alone** in anything that outlives the document. Task numbers are display positions and get renumbered whenever tasks are inserted or removed; a dependency or hand-off that says "Task 3" silently points somewhere else after the next insert. Name the task.
 
 ---

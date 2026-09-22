@@ -71,15 +71,15 @@ Two cases override the above:
 
    > `The Notion backend is configured but the Notion MCP server isn't available in this session. Using local markdown for everything. Run /synthex:configure-notion to reconfigure.`
 
-2. **A workstream-scoping failure** (`schema_mismatch` from `notion-task-store` Step 1) — never falls back to an unscoped query. Report it and stop touching tasks. Documents may still proceed.
+2. **A epic-scoping failure** (`schema_mismatch` from `notion-task-store` Step 1) — never falls back to an unscoped query. Report it and stop touching tasks. Documents may still proceed.
 
 **Always surface a degradation.** A run that silently fell back to local markdown looks identical to a healthy Notion run until someone wonders why Notion is stale. The envelope's `degraded_from` field exists for exactly this.
 
 ---
 
-## 5. The workstream reference — resolve it once, use it twice
+## 5. The epic reference — resolve it once, use it twice
 
-Under the `notion` backend the workstream reference does two jobs, and both happen before you touch anything:
+Under the `notion` backend the epic reference does two jobs, and both happen before you touch anything:
 
 - it **anchors epic-scoped documents**, because the initiative's own page holds its PRD, plan, and retrospectives as subpages;
 - it **scopes task queries**, because the work items relate to that same page.
@@ -88,18 +88,18 @@ Resolving it once and using it for both is what keeps documents and tasks from d
 
 ### Step A — read the plan and take its reference
 
-The workstream **property** comes from `notion.workstream.property`. The **value** comes from the plan, because a repository usually has several initiatives in flight and one configured value would make their rows indistinguishable.
+The epic **property** comes from `notion.epic.property`. The **value** comes from the plan, because a repository usually has several initiatives in flight and one configured value would make their rows indistinguishable.
 
 Take it in this order:
 
-1. The plan's `**Workstream:**` line, immediately beneath its H1 — **authoritative**. (`**Epic:**` is accepted as a synonym.)
-2. `notion.workstream.value` — a default for plans that do not declare one
+1. The plan's `**Epic:**` line, immediately beneath its H1 — **authoritative**
+2. `notion.epic.value` — a default for plans that do not declare one
 3. Neither → report `schema_mismatch` and do **not** touch documents or tasks
 
 ```markdown
 # Implementation Plan: Billing Migration
 
-**Workstream:** [Billing Migration](https://www.notion.so/<epic-row-id>)
+**Epic:** [Billing Migration](https://www.notion.so/<epic-row-id>)
 ```
 
 The link form carries a label for people and an id for the filter, in one line.
@@ -114,8 +114,8 @@ If the property is a `select`, `status`, or text type, the value is used as-is a
 
 | Adapter | Field | Value |
 |---------|-------|-------|
-| `notion-document-store` | `workstream_page` | the resolved page id (epic-scoped types need it) |
-| `notion-task-store` | `workstream` | `{ property, value }` with the resolved value |
+| `notion-document-store` | `epic_page` | the resolved page id (epic-scoped types need it) |
+| `notion-task-store` | `epic` | `{ property, value }` with the resolved value |
 
 Neither adapter reads plan documents. Resolution is the caller's job, which is what makes it impossible to query task rows without having first read the plan those rows belong to — no flag to forget, no config entry to drift.
 

@@ -92,7 +92,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       'docs_root',
       'tasks_database',
       'targets',
-      'workstream',
+      'epic',
       'property_map',
       'status_values',
     ])('defines key %s', (key) => {
@@ -110,8 +110,8 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       expect(content).toMatch(/survives a page\s*#?\s*being renamed/);
     });
 
-    it('ships workstream unconfigured with both subkeys present', () => {
-      expect(cfg.notion.workstream).toEqual({ property: null, value: null });
+    it('ships epic unconfigured with both subkeys present', () => {
+      expect(cfg.notion.epic).toEqual({ property: null, value: null });
     });
 
     it.each([
@@ -120,7 +120,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       'docs_root:',
       'tasks_database:',
       'targets:',
-      'workstream:',
+      'epic:',
       'property_map:',
       'status_values:',
     ])('has an inline comment above %s', (key) => {
@@ -154,7 +154,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
       expect(content).toMatch(/ALREADY EXISTS/);
     });
 
-    it('documents the workstream scoping guarantee', () => {
+    it('documents the epic scoping guarantee', () => {
       expect(content).toMatch(/EVERY query Synthex\s*#?\s*issues filters on/);
       expect(content).toMatch(/other teams' tickets/);
     });
@@ -201,7 +201,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
     // explicit set of values the CALLER resolves at runtime and passes in.
     // Those legitimately have no entry in defaults.yaml. Keeping the set here
     // and small is the point: anything else must be real config.
-    const CALLER_SUPPLIED = new Set(['workstream_page']);
+    const CALLER_SUPPLIED = new Set(['epic_page']);
 
     it.each(ADAPTERS)('%s references only real notion config keys', (rel) => {
       const text = readFileSync(join(PLUGIN, rel), 'utf8');
@@ -238,7 +238,7 @@ describe('Phase 1: Notion backend config in defaults.yaml', () => {
     });
 
     it('names the required property mappings', () => {
-      expect(content).toMatch(/Required: title, status, workstream/);
+      expect(content).toMatch(/Required: title, status, epic/);
     });
   });
 });

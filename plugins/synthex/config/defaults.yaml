@@ -491,7 +491,7 @@ multi_model_review:
 # workspace it finds and never imposes a structure on it. It roots documents
 # under a page you nominate, writes tasks into a database you nominate, maps
 # onto that database's existing properties, and scopes every row it touches to
-# a workstream identifier so it cannot see or modify other teams' tickets.
+# a epic reference so it cannot see or modify other teams' tickets.
 #
 # Access is via the Notion MCP server — Synthex never holds a Notion API key.
 # Run `/synthex:configure-notion` to set this up interactively rather than
@@ -511,7 +511,7 @@ notion:
   # abort the command instead. Enable this where a silent divergence between
   # Notion and local state would be worse than a failed command.
   # Two failures never fall back regardless: an unscoped-query risk
-  # (see `workstream` below) and a missing required property mapping.
+  # (see `epic` below) and a missing required property mapping.
   strict_mode: false
 
   # An EXISTING Notion database whose rows are your epics or initiatives, as a
@@ -521,13 +521,13 @@ notion:
   # row. The row becomes the single entry point for everything about it.
   # Synthex links to rows you already have; it offers to create one only when
   # you ask, and never fills in fields it does not own.
-  # Leave null if your workstreams are a tag on the work database rather than
+  # Leave null if your epics are a tag on the work database rather than
   # rows in their own database.
   epics_database: null
 
   # An EXISTING Notion database holding the work items your epics break down
   # into, as a URL or database ID. Synthex's tasks live alongside whatever else
-  # the team tracks there, which is why `workstream` below is mandatory.
+  # the team tracks there, which is why `epic` below is mandatory.
   # If null, `/synthex:configure-notion` offers to create one.
   tasks_database: null
 
@@ -549,11 +549,11 @@ notion:
   # Must be a map, never a list.
   targets: {}
 
-  # Workstream scoping (FR-NB4) — the multi-team safety guarantee, and the
+  # Epic scoping (FR-NB4) — the multi-team safety guarantee, and the
   # reason this integration can point at a live shared board at all.
   # Every row Synthex creates is stamped with `value`, and EVERY query Synthex
   # issues filters on `property` = `value`. Synthex therefore cannot read or
-  # mutate tickets belonging to other workstreams.
+  # mutate tickets belonging to other epics.
   # Both keys are required when `tasks_database` is set. Synthex refuses to run
   # unscoped against a shared database — falling back to an unfiltered query is
   # never an acceptable degradation.
@@ -561,24 +561,33 @@ notion:
   # The PROPERTY is a fact about your database's schema, so it is set once here.
   # The VALUE identifies one initiative, and a repo commonly has several in
   # flight at once — so each implementation plan carries its own value on a
-  # `**Workstream:**` line beneath its H1. Resolution, first match wins:
-  #   the plan's `**Workstream:**` line  >  `value` below  >  refuse to run
+  # `**Epic:**` line beneath its H1. Resolution, first match wins:
+  #   the plan's `**Epic:**` line  >  `value` below  >  refuse to run
   # Binding the value to the plan makes targeting the wrong initiative
   # structurally impossible: a command cannot touch task rows without having
-  # read the plan those rows belong to, and that plan names its workstream.
-  workstream:
-    # Name of an existing property in `tasks_database` used to scope our rows.
-    # Any property type that can be filtered for equality works: select,
-    # multi-select, status, relation, or plain text.
+  # read the plan those rows belong to, and that plan names its epic.
+  epic:
+    # Name of the property on `tasks_database` that links a work item to its
+    # epic — commonly a relation property literally called "Epic".
+    # Any type that can be filtered for equality works: relation, select,
+    # multi-select, status, or plain text. A relation is the normal shape and
+    # the only one that also lets Synthex anchor documents to the epic page.
+    #
+    # Name this property exactly, and be sure it is the one your team actually
+    # uses for the epic linkage. A database may carry other similarly-named
+    # fields left over from an earlier process; pointing Synthex at one of
+    # those yields queries that match nothing, which looks like "no work left"
+    # rather than like a misconfiguration. `/synthex:configure-notion` lists
+    # the real candidates with their types so you can pick deliberately.
     property: null
-    # Default workstream value, used only for plans that do not declare their
+    # Default epic value, used only for plans that do not declare their
     # own. Single-initiative projects can just set this and never think about
     # it. Multi-initiative repos should leave it null and let each plan speak
     # for itself, so a plan can never silently inherit the wrong epic.
     value: null
 
   # Assignee scoping — relevant when several engineers share one epic.
-  # Workstream scoping alone still lets two engineers select the same item, so
+  # Epic scoping alone still lets two engineers select the same item, so
   # when `property` is set, task queries are additionally scoped to work the
   # invoking engineer may legitimately take: assigned to them, OR unassigned.
   # Items assigned to somebody else are never selected or modified.
@@ -599,7 +608,7 @@ notion:
 
   # Maps Synthex's canonical task fields onto your database's actual property
   # names, as a map of <canonical_field>: <your property name>.
-  # Required: title, status, workstream. Without all three Synthex refuses to
+  # Required: title, status, epic. Without all three Synthex refuses to
   # operate (error code `schema_mismatch`) rather than guess.
   # Optional: complexity, milestone, dependencies, acceptance_criteria. When one
   # is unmapped it degrades gracefully — the data is recorded in the plan
@@ -610,7 +619,7 @@ notion:
   #   property_map:
   #     title: Name
   #     status: Status
-  #     workstream: Team
+  #     epic: Team
   #     complexity: Size
   property_map: {}
 

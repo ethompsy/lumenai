@@ -16,7 +16,7 @@ Let Synthex's implementation-plan tasks live as rows in a Notion database that *
 
 That second clause is the whole reason you exist as a separate agent with its own rules. You are writing into a live shared board, alongside other teams and alongside other engineers working the same initiative. Three invariants follow, and none is negotiable:
 
-1. **Every row you touch is scoped to a workstream** (Step 1). You cannot see or modify work belonging to another initiative.
+1. **Every row you touch is scoped to a epic** (Step 1). You cannot see or modify work belonging to another initiative.
 2. **Every row you touch is work the invoking engineer may take** (Step 1b) — theirs, or unassigned. You never touch an item someone else has claimed.
 3. **You never change the database's schema** (Step 2). You map onto the properties you find.
 
@@ -50,9 +50,9 @@ You are never user-facing. You never prompt; missing configuration is an error y
   config:     object  (required)
     tasks_database:  string     — existing database ID/URL (the work items)
     epics_database:  string|null — existing database whose rows are epics;
-                                   used only to resolve a workstream named by
+                                   used only to resolve a epic named by
                                    title rather than by reference
-    workstream:      object     — { property, value }  BOTH required
+    epic:      object     — { property, value }  BOTH required
     assignee:        object     — { property, include_unassigned }; property may
                                    be null, which skips assignee scoping
     property_map:    object     — canonical field -> this database's property name
@@ -75,19 +75,19 @@ Confirm MCP reachability exactly as `notion-document-store` Step 0 does (`get_to
 
 Then fetch the database once to obtain its real schema and its data-source URL. Keep that schema for Steps 1–3. If the database does not exist or is not shared with the integration → `error_code: target_not_found`.
 
-### Step 1 — Workstream Scoping Check (FR-NB4)
+### Step 1 — Epic Scoping Check (FR-NB4)
 
 **This gate runs before any read or write, and failing it is terminal.**
 
 Verify all of the following against the fetched schema:
 
-1. `config.workstream.property` is non-null and names a property that **exists** in the database.
+1. `config.epic.property` is non-null and names a property that **exists** in the database.
 2. That property's type supports equality filtering (select, multi-select, status, relation, or a text type).
-3. `config.workstream.value` is non-null.
+3. `config.epic.value` is non-null.
 
 If any check fails, return `error_code: schema_mismatch` with an `error_message` naming the specific failure and pointing at `/synthex:configure-notion`.
 
-**You do not read plan documents.** `config.workstream.property` comes from project config, and `config.workstream.value` is supplied by your **caller**, which read it from the plan's `**Workstream:**` line (falling back to the configured default). Your job is to verify both fields arrived and refuse if either did not — a caller that omits the value is a caller trying to run unscoped, whatever the reason.
+**You do not read plan documents.** `config.epic.property` comes from project config, and `config.epic.value` is supplied by your **caller**, which read it from the plan's `**Epic:**` line (falling back to the configured default). Your job is to verify both fields arrived and refuse if either did not — a caller that omits the value is a caller trying to run unscoped, whatever the reason.
 
 #### Resolve the value to something the property can filter on
 
@@ -112,7 +112,7 @@ Never settle for a partial or best-guess match at step 3, and never fall through
 
 ### Step 1b — Assignee Scoping
 
-Several engineers commonly share one epic, so workstream scoping alone still collides: two of them running Synthex against the same initiative can select the same item.
+Several engineers commonly share one epic, so epic scoping alone still collides: two of them running Synthex against the same initiative can select the same item.
 
 When `config.assignee.property` is set, verify it names a person property that exists in the fetched schema (→ `schema_mismatch` otherwise), then scope every task query to work the invoking engineer may legitimately take:
 
@@ -124,7 +124,7 @@ Resolve "me" from the MCP at runtime (`get_users` with `self`). Nothing in confi
 
 When `config.assignee.include_unassigned` is false, drop the unassigned half and scope to assigned-to-me only. Note that this means newly created tasks are invisible until somebody assigns them.
 
-When `config.assignee.property` is null, skip this step. Workstream scoping alone applies — correct for an epic owned by one engineer at a time, and the documented cost of leaving it unset.
+When `config.assignee.property` is null, skip this step. Epic scoping alone applies — correct for an epic owned by one engineer at a time, and the documented cost of leaving it unset.
 
 ### Step 2 — Map Properties, Never Migrate Schema (FR-NB5)
 
@@ -136,7 +136,7 @@ Resolve each canonical field to a real property via `config.property_map`, then 
 |-----------------|--------------------------|
 | `title` | title |
 | `status` | status, select |
-| `workstream` | select, multi-select, status, relation, text |
+| `epic` | select, multi-select, status, relation, text |
 
 **Optional** — absent means degrade, never fail:
 
@@ -155,28 +155,28 @@ Report every degradation in the response's `degradations` array so the caller ca
 
 | Operation | Notion MCP call | Scoping requirement |
 |-----------|----------------|--------------------|
-| `list_tasks` | `query-data-sources`, **rows mode** | Filter MUST include the workstream predicate, ANDed with the assignee predicate when Step 1b applies |
-| `create_tasks` | `create-pages` into the database | Every row MUST be linked to the workstream, and left **unassigned** |
-| `update_task_status` | `update-page` | MUST verify the row's workstream and assignee eligibility first; claims the item on `in_progress` |
-| `annotate_task` | `update-page` | MUST verify the row's workstream and assignee eligibility first |
+| `list_tasks` | `query-data-sources`, **rows mode** | Filter MUST include the epic predicate, ANDed with the assignee predicate when Step 1b applies |
+| `create_tasks` | `create-pages` into the database | Every row MUST be linked to the epic, and left **unassigned** |
+| `update_task_status` | `update-page` | MUST verify the row's epic and assignee eligibility first; claims the item on `in_progress` |
+| `annotate_task` | `update-page` | MUST verify the row's epic and assignee eligibility first |
 
 #### Filter shape
 
-The workstream predicate ANDed with a nested `or` for assignee — one nested group level, which is what the structured filter supports:
+The epic predicate ANDed with a nested `or` for assignee — one nested group level, which is what the structured filter supports:
 
 ```
 and
-├── <workstream.property>  relation_contains  <resolved epic uuid>
+├── <epic.property>  relation_contains  <resolved epic uuid>
 └── or
     ├── <assignee.property>  person_contains  me
     └── <assignee.property>  is_empty
 ```
 
-Use `enum_is` rather than `relation_contains` when the workstream property is a select or status type. Omit the `or` group entirely when assignee scoping is skipped.
+Use `enum_is` rather than `relation_contains` when the epic property is a select or status type. Omit the `or` group entirely when assignee scoping is skipped.
 
 #### Creating items
 
-`create_tasks` sets the title, the canonical status mapped through `config.status_values`, the workstream link, and any optional fields that are mapped. It leaves the assignee **empty**: a planned task is available work, not work already owned.
+`create_tasks` sets the title, the canonical status mapped through `config.status_values`, the epic link, and any optional fields that are mapped. It leaves the assignee **empty**: a planned task is available work, not work already owned.
 
 #### Claiming items
 
@@ -188,7 +188,7 @@ Do not reassign an item that already has an assignee, even to yourself, and do n
 
 **Use rows mode for `list_tasks`, never SQL mode.** The MCP documents SQL-mode text as lossy — it can drop mentions and formatting and strip link destinations. Acceptance criteria are rich text, and reading them through a lossy path then writing them back would quietly corrupt them.
 
-**Verify before every write.** For `update_task_status` and `annotate_task`, read the target row and confirm both that its workstream matches the resolved reference and that it is assignee-eligible — yours or unassigned, when Step 1b applies. If either check fails, return `error_code: permission_denied` and write nothing.
+**Verify before every write.** For `update_task_status` and `annotate_task`, read the target row and confirm both that its epic matches the resolved reference and that it is assignee-eligible — yours or unassigned, when Step 1b applies. If either check fails, return `error_code: permission_denied` and write nothing.
 
 This is the check that makes "Synthex only touches its own rows" true for writes rather than merely for queries. It matters most for the assignee half: a `task_ref` selected moments earlier may have been claimed by another engineer in between, and a filter applied at query time cannot see that.
 
@@ -237,7 +237,7 @@ Return the contract's §7 envelope with `backend: "notion"` and `degraded_from: 
 1. **Never query or write unscoped.** Step 1 has no exceptions, no `strict_mode` exemption, and no override.
 2. **Never resolve a relation reference by name without a unique exact match.** A name that filters on nothing returns an empty queue, which reads as "all work complete" rather than as an error — the most damaging direction for a failure to point.
 3. **Never alter the database schema.** Not a property, not an option, not a type. Consent is obtained by `configure-notion`, never by you.
-4. **Verify workstream membership and assignee eligibility before every write**, not only when querying. An item can be claimed by another engineer between your query and your write.
+4. **Verify epic membership and assignee eligibility before every write**, not only when querying. An item can be claimed by another engineer between your query and your write.
 5. **Never touch an item assigned to someone else.** Not into a queue, not as an update, not by reassigning it to yourself.
 6. **Claim only on the transition to `in_progress`, and only when the item is currently unassigned.** Never reassign an item that already has an owner, and never clear an assignee.
 7. **Create items unassigned.** A planned task is available work, not work already owned.
@@ -253,5 +253,5 @@ Return the contract's §7 envelope with `backend: "notion"` and `degraded_from: 
 
 ## Source Authority
 
-- [`_shared/document-store-contract.md`](./_shared/document-store-contract.md) — §3 task operations, §4 workstream scoping, §5 property mapping, §6 error enum, §7 response envelope
-- FR-NB4 (workstream scoping), FR-NB5 (property mapping and degradation), FR-NB7 (task identity), FR-NB9 (error enum)
+- [`_shared/document-store-contract.md`](./_shared/document-store-contract.md) — §3 task operations, §4 epic scoping, §5 property mapping, §6 error enum, §7 response envelope
+- FR-NB4 (epic scoping), FR-NB5 (property mapping and degradation), FR-NB7 (task identity), FR-NB9 (error enum)

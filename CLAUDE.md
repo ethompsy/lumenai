@@ -159,7 +159,7 @@ Narrow-scope agents that let expensive Opus/Sonnet agents delegate mechanical wo
 | `gemini-review-prompter` | Haiku-backed; Google Gemini CLI adapter for multi-model review (`agentic` tier; family `google`) | Utility |
 | `ollama-review-prompter` | Haiku-backed; local Ollama HTTP API adapter for multi-model review (`text-only` tier; family `local-<model>`) | Utility |
 | `notion-document-store` | Haiku-backed; implements the document operations of the document-store contract against Notion via MCP (prose documents: PRDs, plan overviews, ADRs, RFCs, runbooks, retros) | Utility |
-| `notion-task-store` | Haiku-backed; implements the task operations against an existing Notion database. Enforces workstream scoping (FR-NB4) and property mapping with graceful degradation (FR-NB5) | Utility |
+| `notion-task-store` | Haiku-backed; implements the task operations against an existing Notion database. Enforces epic scoping (FR-NB4) and property mapping with graceful degradation (FR-NB5) | Utility |
 
 ## Commands
 
@@ -167,7 +167,7 @@ Narrow-scope agents that let expensive Opus/Sonnet agents delegate mechanical wo
 |---------|---------|-------------------|
 | `init` | Initialize project configuration and directories. During first-run, delegates the "Configure Multi-Model Review (optional)" sub-step to `/synthex:configure-multi-model` per FR-UO3, and the "Configure Notion Backend (optional)" sub-step to `/synthex:configure-notion` per FR-NB6. Neither sub-step can abort `init`. | — |
 | `configure-multi-model` | Re-runnable wizard for the `multi_model_review` config block. Detects installed CLIs, runs auth checks, surfaces 3 options (Enable with detected / Enable later / Skip), and shows FR-MR27 data-transmission warning. Idempotent — re-entering when already enabled offers Re-run / Reset to disabled / Leave as-is. | — |
-| `configure-notion` | Re-runnable wizard for the `documents.backend*` and `notion` config blocks. Points Synthex at an **existing** Notion page and task database, discovers the database's real schema, maps properties, sets the workstream identifier, and shows the FR-NB8 data-transmission warning. Idempotent — re-entering when enabled offers Re-run / Reset to disabled / Leave as-is. Refuses to configure tasks unscoped. | — |
+| `configure-notion` | Re-runnable wizard for the `documents.backend*` and `notion` config blocks. Points Synthex at an **existing** Notion page and task database, discovers the database's real schema, maps properties, sets the epic reference, and shows the FR-NB8 data-transmission warning. Idempotent — re-entering when enabled offers Re-run / Reset to disabled / Leave as-is. Refuses to configure tasks unscoped. | — |
 | `dismiss-upgrade-nudge` | Silence the SessionStart upgrade nudge for this project by writing `dismissed: true` to `.synthex/state.json`. Idempotent; no arguments. | — |
 | `loop` | Generic native-looping primitive. Loops an arbitrary prompt (literal `--prompt` or `--prompt-file <path>`) until the completion promise is emitted or `--max-iterations` is reached. Per-session state at `.synthex/loops/<loop-id>.json`; supports `--resume <id>` / `--resume-last`. | — |
 | `list-loops` | Enumerate running and recent terminal-status loops in `.synthex/loops/`. Read-only. Output format: `RUNNING (N)` + `COMPLETED (M)` blocks sorted by recency. | — |
@@ -213,11 +213,11 @@ See `docs/specs/multi-model-teams/` for pool specifications.
 
 Synthex's documents and implementation-plan task state can be routed into an **existing** Notion workspace instead of local markdown. Off by default (`notion.enabled: false`); when disabled, behavior is byte-identical to pre-Notion Synthex (FR-NB2).
 
-The design commitment is bolt-on compatibility: Synthex roots documents under a page you nominate, writes task rows into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a workstream identifier so it coexists with other teams' work. It never restructures a workspace and never changes a database schema without explicit consent. Access is via the Notion MCP server — Synthex holds no Notion API key.
+The design commitment is bolt-on compatibility: Synthex roots documents under a page you nominate, writes task rows into a database you nominate, maps onto that database's existing properties, and scopes every row it touches to a epic reference so it coexists with other teams' work. It never restructures a workspace and never changes a database schema without explicit consent. Access is via the Notion MCP server — Synthex holds no Notion API key.
 
 The workspace model is two related databases: **epics** (one row per initiative) and the **work items** they break down into. Because every Notion database row is itself a page, the epic row anchors both halves — its requirements, plan, and retrospectives become subpages of it, and its work items relate to it.
 
-Each implementation plan names its own epic on a `**Workstream:**` line beneath its H1, written as a markdown link so the line carries both a label and the page id a relation filter needs. A repository running several initiatives concurrently therefore keeps them cleanly separated: a command cannot touch work items without having read the plan those items belong to.
+Each implementation plan names its own epic on a `**Epic:**` line beneath its H1, written as a markdown link so the line carries both a label and the page id a relation filter needs. A repository running several initiatives concurrently therefore keeps them cleanly separated: a command cannot touch work items without having read the plan those items belong to.
 
 Scoping has a second dimension. When `notion.assignee.property` is set, Synthex acts only on work **assigned to the current user or unassigned**, and claims an item by assigning it when it moves to `in_progress` — so several engineers can work one epic without selecting the same item. Items another engineer holds are never read, modified, or reassigned.
 
@@ -310,8 +310,8 @@ See `plugins/synthex/config/defaults.yaml` for the full reference. Key settings:
 | `notion.assignee.property` | `null` | Person property on the work database. When set, Synthex acts only on items assigned to the current user or unassigned, and claims an item when it starts one |
 | `notion.assignee.include_unassigned` | `true` | Whether unassigned items are claimable |
 | `notion.targets` | `{}` | Resolved page ID per document type, written by the wizard. Deterministic and survives a page rename |
-| `notion.workstream.property` | `null` | Database property used to scope every row Synthex reads or writes. Required for tasks — Synthex refuses to run unscoped |
-| `notion.workstream.value` | `null` | **Default only.** Each implementation plan declares its own workstream on a `**Workstream:**` line beneath its H1, which takes precedence. Multi-initiative repos should leave this null so a plan can never inherit another epic's identifier |
+| `notion.epic.property` | `null` | Property on the work database linking an item to its epic — commonly a relation literally named `Epic`. Scopes every row Synthex reads or writes. Required for tasks; Synthex refuses to run unscoped |
+| `notion.epic.value` | `null` | **Default only.** Each implementation plan declares its own epic on an `**Epic:**` line beneath its H1, which takes precedence. Multi-initiative repos should leave this null so a plan can never inherit another epic's identifier |
 | `notion.property_map` | `{}` | Canonical task field → the target database's property name |
 | `notion.status_values` | `{}` | Canonical task state → the target database's option name |
 

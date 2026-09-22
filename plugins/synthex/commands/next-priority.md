@@ -40,7 +40,7 @@ This command reads the implementation plan's task queue and writes task state ba
 
 **Command-specific notes**
 
-- **Resolve the workstream reference from the plan first.** Read the plan, take its `**Workstream:**` line (falling back to `notion.workstream.value`, and reporting `schema_mismatch` if neither exists), resolve it to an epic page id, and pass it to every task-store call. This is what keeps a run scoped to the epic you invoked it on: with several initiatives in one repository, a configured value alone would return another epic's tasks and the plan-complete check would never fire. See [`document-backends.md`](../docs/document-backends.md) §5.
+- **Resolve the epic reference from the plan first.** Read the plan, take its `**Epic:**` line (falling back to `notion.epic.value`, and reporting `schema_mismatch` if neither exists), resolve it to an epic page id, and pass it to every task-store call. This is what keeps a run scoped to the epic you invoked it on: with several initiatives in one repository, a configured value alone would return another epic's tasks and the plan-complete check would never fire. See [`document-backends.md`](../docs/document-backends.md) §5.
 - **Work is additionally scoped to what you may take.** When `notion.assignee.property` is set, the task store returns only items assigned to the current user or unassigned, and claims an item by assigning it to that user when Step 3 moves it to `in_progress`. Two consequences for this command:
   - **Another engineer's in-flight work never enters your queue**, so two engineers can run this command against the same epic concurrently without selecting the same item.
   - **"No actionable tasks" can mean "all remaining work is claimed by someone else."** That is a normal outcome, not a completion. Do not emit the completion promise; report what remains and who holds it, exactly as with blocked or `[H]`-gated tasks.
@@ -48,12 +48,12 @@ This command reads the implementation plan's task queue and writes task state ba
 
   | Workflow step | Task-store operation |
   |---------------|---------------------|
-  | Step 1 — select work | `list_tasks` (workstream-filtered) |
+  | Step 1 — select work | `list_tasks` (epic-filtered) |
   | Step 3 — mark in progress | `update_task_status` with `in_progress` |
   | Step 9 — mark done | `update_task_status` with `done`, then `annotate_task` |
   | Error handling — blocker | `update_task_status` with `blocked` |
 
-- **The plan-complete check in Step 1 uses the workstream-filtered queue.** `list_tasks` returns only this project's rows, so "every task is `done`" means every Synthex task in this workstream, not every row in a shared database. That is the intended semantics — other teams' tickets are none of this command's business and must never gate its completion.
+- **The plan-complete check in Step 1 uses the epic-filtered queue.** `list_tasks` returns only this project's rows, so "every task is `done`" means every Synthex task in this epic, not every row in a shared database. That is the intended semantics — other teams' tickets are none of this command's business and must never gate its completion.
 - **Never resolve a task by ordinal.** Use the `task_ref` returned by `list_tasks`. Ordinals are display-only and get renumbered when tasks are inserted or removed; treating one as identity would silently retarget a write to the wrong row.
 - Acceptance-criteria evidence from Step 9 — `[T]` test linkage, `[H]` approval, and the `--auto-decide` decision record — goes through `annotate_task`. When `acceptance_criteria` is unmapped, the adapter records it in the task page body.
 

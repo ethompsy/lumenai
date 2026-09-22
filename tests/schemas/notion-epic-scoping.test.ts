@@ -1,8 +1,8 @@
 /**
- * FR-NB4: workstream scoping — the multi-team safety guarantee.
+ * FR-NB4: epic scoping — the multi-team safety guarantee.
  *
  * Synthex writes task rows into a Notion database that already holds other
- * teams' work. Every query must filter on the workstream property and every
+ * teams' work. Every query must filter on the epic property and every
  * write must verify it first, or Synthex can read and mutate tickets that
  * aren't its own. That failure is silent: nobody finds out until a ticket
  * someone else owns has the wrong status.
@@ -20,7 +20,7 @@ import { join } from 'path';
 const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'synthex');
 const read = (rel: string) => readFileSync(join(PLUGIN, rel), 'utf8');
 
-describe('FR-NB4: workstream scoping', () => {
+describe('FR-NB4: epic scoping', () => {
   let contract: string;
   let taskStore: string;
   let wizard: string;
@@ -32,8 +32,8 @@ describe('FR-NB4: workstream scoping', () => {
   });
 
   describe('Contract states the guarantee normatively', () => {
-    it('has a dedicated workstream scoping section citing FR-NB4', () => {
-      expect(contract).toMatch(/^## 4\. Workstream scoping \(FR-NB4\)$/m);
+    it('has a dedicated epic scoping section citing FR-NB4', () => {
+      expect(contract).toMatch(/^## 4\. Epic scoping \(FR-NB4\)$/m);
     });
 
     it('marks the requirement non-negotiable', () => {
@@ -41,9 +41,9 @@ describe('FR-NB4: workstream scoping', () => {
     });
 
     it('requires create-time stamping, query filtering, and pre-write verification', () => {
-      expect(contract).toMatch(/MUST be stamped with the configured workstream value/);
-      expect(contract).toMatch(/MUST filter on the workstream property/);
-      expect(contract).toMatch(/MUST verify the target row carries the configured workstream value before writing/);
+      expect(contract).toMatch(/MUST be stamped with the configured epic value/);
+      expect(contract).toMatch(/MUST filter on the epic property/);
+      expect(contract).toMatch(/MUST verify the target row carries the configured epic value before writing/);
     });
 
     it('requires refusal rather than an unscoped fallback', () => {
@@ -54,20 +54,20 @@ describe('FR-NB4: workstream scoping', () => {
     it('exempts the filesystem backend explicitly', () => {
       // Without this, an implementer might add pointless scoping machinery to
       // the local-markdown path, or worse, block it.
-      expect(contract).toMatch(/filesystem.*backend.*workstream scoping is a no-op/is);
+      expect(contract).toMatch(/filesystem.*backend.*epic scoping is a no-op/is);
     });
   });
 
   describe('Task store enforces it before any I/O', () => {
     it('runs the scoping check as a preflight gate', () => {
-      expect(taskStore).toMatch(/### Step 1 — Workstream Scoping Check \(FR-NB4\)/);
+      expect(taskStore).toMatch(/### Step 1 — Epic Scoping Check \(FR-NB4\)/);
       expect(taskStore).toMatch(/runs before any read or write, and failing it is terminal/);
     });
 
     it('validates the property exists and is filterable, and the value is set', () => {
       expect(taskStore).toMatch(/names a property that \*{0,2}exists\*{0,2} in the database/);
       expect(taskStore).toMatch(/supports equality filtering/);
-      expect(taskStore).toMatch(/workstream\.value` is non-null/);
+      expect(taskStore).toMatch(/epic\.value` is non-null/);
     });
 
     it('closes every escape hatch in words', () => {
@@ -77,9 +77,9 @@ describe('FR-NB4: workstream scoping', () => {
       expect(taskStore).toMatch(/no "just this once/);
     });
 
-    it('requires a workstream filter on list_tasks', () => {
+    it('requires a epic filter on list_tasks', () => {
       expect(taskStore).toMatch(
-        /list_tasks.*Filter MUST include the workstream predicate/s,
+        /list_tasks.*Filter MUST include the epic predicate/s,
       );
     });
 
@@ -93,14 +93,14 @@ describe('FR-NB4: workstream scoping', () => {
       expect(shape).toMatch(/Omit the `or` group entirely when assignee scoping is skipped/);
     });
 
-    it('requires create_tasks to link the workstream and leave items unassigned', () => {
-      expect(taskStore).toMatch(/create_tasks.*MUST be linked to the workstream, and left \*\*unassigned\*\*/s);
+    it('requires create_tasks to link the epic and leave items unassigned', () => {
+      expect(taskStore).toMatch(/create_tasks.*MUST be linked to the epic, and left \*\*unassigned\*\*/s);
       expect(taskStore).toMatch(/a planned task is available work, not work already owned/);
     });
 
     it('requires pre-write verification on both mutating operations', () => {
-      expect(taskStore).toMatch(/update_task_status.*MUST verify the row's workstream and assignee eligibility first/s);
-      expect(taskStore).toMatch(/annotate_task.*MUST verify the row's workstream and assignee eligibility first/s);
+      expect(taskStore).toMatch(/update_task_status.*MUST verify the row's epic and assignee eligibility first/s);
+      expect(taskStore).toMatch(/annotate_task.*MUST verify the row's epic and assignee eligibility first/s);
       expect(taskStore).toMatch(/Verify before every write/);
     });
 
@@ -110,7 +110,7 @@ describe('FR-NB4: workstream scoping', () => {
       );
     });
 
-    it('returns permission_denied on a workstream mismatch and writes nothing', () => {
+    it('returns permission_denied on a epic mismatch and writes nothing', () => {
       expect(taskStore).toMatch(/permission_denied` and write nothing/);
     });
 
@@ -121,11 +121,11 @@ describe('FR-NB4: workstream scoping', () => {
   });
 
   describe('Wizard cannot produce an unscoped configuration', () => {
-    it('makes workstream setup a required step for tasks', () => {
-      expect(wizard).toMatch(/### 3\. Workstream Scoping \(required for tasks\)/);
+    it('makes epic setup a required step for tasks', () => {
+      expect(wizard).toMatch(/### 3\. Epic Scoping \(required for tasks\)/);
     });
 
-    it('refuses to enable tasks without a resolved workstream', () => {
+    it('refuses to enable tasks without a resolved epic', () => {
       expect(wizard).toMatch(/do NOT write `notion\.enabled: true` for tasks/);
       expect(wizard).toMatch(/There is no unscoped fallback/);
     });
@@ -150,7 +150,7 @@ describe('FR-NB4: workstream scoping', () => {
     it('asks only for an optional default value, not a mandatory one', () => {
       // The authoritative value lives on each plan; a mandatory config value
       // is what creates the multi-initiative collision.
-      expect(wizard).toMatch(/Default workstream value \(optional\)/);
+      expect(wizard).toMatch(/Default epic value \(optional\)/);
       expect(wizard).toMatch(/A null default is not an error/);
     });
 
@@ -161,18 +161,18 @@ describe('FR-NB4: workstream scoping', () => {
 
     it('distinguishes a missing property from a null default value', () => {
       const rules = wizard.split('## Behavioral Rules')[1] ?? '';
-      expect(rules).toMatch(/No workstream property means documents-only/);
+      expect(rules).toMatch(/No epic property means documents-only/);
       expect(rules).toMatch(/A null default \*value\* is fine/);
     });
 
-    it('forbids deriving a workstream value', () => {
+    it('forbids deriving a epic value', () => {
       const rules = wizard.split('## Behavioral Rules')[1] ?? '';
-      expect(rules).toMatch(/Never derive a workstream value/);
+      expect(rules).toMatch(/Never derive a epic value/);
       expect(rules).toMatch(/empty queue that reads as "all work complete/);
     });
   });
 
-  describe('Workstream value is carried by the plan, not by config', () => {
+  describe('Epic value is carried by the plan, not by config', () => {
     // A single configured value makes every initiative's rows
     // indistinguishable, so `list_tasks` for one epic returns another's work
     // and the plan-complete check never fires. Binding the value to the plan
@@ -197,7 +197,7 @@ describe('FR-NB4: workstream scoping', () => {
     });
 
     it('contract states the value resolution order', () => {
-      expect(contract).toMatch(/`\*\*Workstream:\*\*` line — \*\*authoritative\*\*/);
+      expect(contract).toMatch(/`\*\*Epic:\*\*` line — \*\*authoritative\*\*/);
       expect(contract).toMatch(/a default for plans that do not declare one/);
       expect(contract).toMatch(/refuse to operate on tasks/);
     });
@@ -227,29 +227,29 @@ describe('FR-NB4: workstream scoping', () => {
       expect(sharedDoc).toMatch(/mention it once in your output/);
     });
 
-    it('both plan templates carry the Workstream line', () => {
+    it('both plan templates carry the Epic line', () => {
       for (const [name, text] of [
         ['write-implementation-plan', planTemplate],
         ['product-manager', read('agents/product-manager.md')],
       ] as const) {
         expect(text, `${name} template missing the line`).toMatch(
-          /\*\*Workstream:\*\* \[This initiative's workstream identifier\]/,
+          /\*\*Epic:\*\* \[This initiative's epic reference\]/,
         );
       }
     });
 
     it('next-priority resolves the value before any task operation', () => {
-      expect(nextPriority).toMatch(/Resolve the workstream reference from the plan first/);
+      expect(nextPriority).toMatch(/Resolve the epic reference from the plan first/);
       expect(nextPriority).toMatch(/plan-complete check would never fire/);
     });
 
     it('plan-linter checks for the line without inventing one', () => {
-      expect(linter).toMatch(/`\*\*Workstream:\*\*` line present beneath the H1/);
+      expect(linter).toMatch(/`\*\*Epic:\*\*` line present beneath the H1/);
       expect(linter).toMatch(/Do \*\*not\*\* invent a value when it is missing/);
     });
 
     it('plan-scribe preserves the line verbatim', () => {
-      expect(scribe).toMatch(/^### Preserve the `\*\*Workstream:\*\*` line$/m);
+      expect(scribe).toMatch(/^### Preserve the `\*\*Epic:\*\*` line$/m);
       expect(scribe).toMatch(/Never remove it, never rewrite its value/);
     });
 
@@ -279,7 +279,7 @@ describe('FR-NB4: workstream scoping', () => {
       // Catch the phrasings a well-meaning implementer might introduce.
       expect(text).not.toMatch(/fall back to an unscoped/i);
       expect(text).not.toMatch(/if scoping fails,? (?:query|read|proceed)/i);
-      expect(text).not.toMatch(/optional(?:ly)? (?:filter|scope) (?:on|by) workstream/i);
+      expect(text).not.toMatch(/optional(?:ly)? (?:filter|scope) (?:on|by) epic/i);
     });
   });
 });

@@ -35,7 +35,7 @@ This command reads the implementation plan and writes a retrospective document. 
 
 - Step 4 reads the **previous** retrospective to compute follow-through. Under the `notion` backend use `list` on the `retros` type and pick the most recent; do not assume filesystem directory ordering. Retrospectives are epic-scoped, so `list` returns those belonging to this initiative only — a prior retro from another epic must not feed this cycle's follow-through rate.
 - Step 6 creates a new document, so use `create`. Under the `notion` backend it becomes a dated subpage of the epic (`Retrospective <YYYY-MM-DD>`), alongside that initiative's requirements and plan. Prior retrospectives are read-only — never modify one.
-- Step 3's planned-vs-actual analysis needs task state. When `implementation_plan` resolves to `notion`, resolve the workstream value from the plan's `**Workstream:**` line first, then read task state via `notion-task-store` `list_tasks` so the analysis covers that initiative's rows only. A retrospective that silently folded in another epic's tasks would misreport this cycle's planned-vs-actual.
+- Step 3's planned-vs-actual analysis needs task state. When `implementation_plan` resolves to `notion`, resolve the epic value from the plan's `**Epic:**` line first, then read task state via `notion-task-store` `list_tasks` so the analysis covers that initiative's rows only. A retrospective that silently folded in another epic's tasks would misreport this cycle's planned-vs-actual.
 
 ## Workflow
 

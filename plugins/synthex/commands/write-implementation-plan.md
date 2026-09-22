@@ -61,16 +61,16 @@ This command a PRD and writes an implementation plan. When the Notion backend is
 **Command-specific notes**
 
 - Under the `notion` backend the finished plan is written as two things, not one: the prose sections (Overview, Decisions, Open Questions, milestone summaries) go to the plan page via `notion-document-store`, and each task becomes a row in the work database via `notion-task-store`, linked to the epic. Step 7 below writes both.
-- **The plan page is a subpage of its epic.** When the workstream property is a relation to an epics database, the plan is created beneath that epic's own row — so anyone opening the epic finds its requirements, plan, and work items together. Resolve the epic from the plan's `**Workstream:**` line before writing anything; without it there is no anchor and `notion-document-store` returns `schema_mismatch` rather than filing the plan somewhere arbitrary.
+- **The plan page is a subpage of its epic.** When the epic property is a relation to an epics database, the plan is created beneath that epic's own row — so anyone opening the epic finds its requirements, plan, and work items together. Resolve the epic from the plan's `**Epic:**` line before writing anything; without it there is no anchor and `notion-document-store` returns `schema_mismatch` rather than filing the plan somewhere arbitrary.
 - **New task rows are created unassigned.** A planned task is available work. Engineers claim items as they start them, which is how concurrent work on one epic stays collision-free.
-- **Set the plan's `**Workstream:**` line.** Every plan records the initiative it belongs to beneath its H1. When the workstream is a row in an epics database, write it as a markdown link so the line carries both a human label and the page id the relation filter needs:
+- **Set the plan's `**Epic:**` line.** Every plan records the initiative it belongs to beneath its H1. When the epic is a row in an epics database, write it as a markdown link so the line carries both a human label and the page id the relation filter needs:
 
   ```markdown
-  **Workstream:** [Billing Migration](https://www.notion.so/<epic-row-id>)
+  **Epic:** [Billing Migration](https://www.notion.so/<epic-row-id>)
   ```
 
-  Ask the user which epic this plan belongs to and link the existing row; search the epics database by title to find it. Do not create an epic row unless the user asks — an epics row usually carries owner, dates, and business context that this command has no basis to fill in. Do not derive a value from a filename or branch: one matching no rows yields an empty task queue that reads as "all work complete." For a `select` or text workstream property, a plain name is correct and no link is needed.
-- Create task rows with the canonical status `pending`, stamped with that workstream value. The adapter translates the status to whatever the target database calls it.
+  Ask the user which epic this plan belongs to and link the existing row; search the epics database by title to find it. Do not create an epic row unless the user asks — an epics row usually carries owner, dates, and business context that this command has no basis to fill in. Do not derive a value from a filename or branch: one matching no rows yields an empty task queue that reads as "all work complete." For a `select` or text epic property, a plain name is correct and no link is needed.
+- Create task rows with the canonical status `pending`, stamped with that epic value. The adapter translates the status to whatever the target database calls it.
 - When the task database has no property mapped for `complexity`, `milestone`, or `dependencies`, the adapter reports a degradation and that data belongs in the overview page instead. Keep it in the plan prose rather than inventing a property for it.
 - The `plan-linter` structural audit in Step 5.5 runs against the **draft markdown**, before any backend write. It is unaffected by this section.
 
@@ -359,7 +359,7 @@ The implementation plan will follow this structure:
 ```markdown
 # Implementation Plan: [Product Name]
 
-**Workstream:** [This initiative's workstream identifier]
+**Epic:** [This initiative's epic reference]
 
 ## Overview
 [Brief summary linking back to the PRD. Keep this to 2-3 sentences.]

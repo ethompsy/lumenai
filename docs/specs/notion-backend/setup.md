@@ -91,10 +91,10 @@ Your work database holds items from many epics. Synthex acts on exactly one at a
 ```markdown
 # Implementation Plan: Billing Migration
 
-**Workstream:** [Billing Migration](https://www.notion.so/<epic-row-id>)
+**Epic:** [Billing Migration](https://www.notion.so/<epic-row-id>)
 ```
 
-The link form matters. If your work items point at their epic through a Notion **relation**, the filter needs the epic's page id — Notion cannot filter a relation by page name. The markdown link carries a label for people and the id for the filter in one line, so you never deal with a bare UUID. (`**Epic:**` works as a label too.)
+The link form matters. If your work items point at their epic through a Notion **relation**, the filter needs the epic's page id — Notion cannot filter a relation by page name. The markdown link carries a label for people and the id for the filter in one line, so you never deal with a bare UUID.
 
 So several concurrent initiatives stay separated with no config juggling:
 
@@ -108,7 +108,7 @@ So several concurrent initiatives stay separated with no config juggling:
 
 Each run's "all tasks complete" covers only its own initiative, so finishing checkout does not wait on billing.
 
-`notion.workstream.value` in config is just a default for plans that don't declare one. **If you run several initiatives, leave it null** — then a new plan can never silently inherit another epic's identity; it has to say what it is.
+`notion.epic.value` in config is just a default for plans that don't declare one. **If you run several initiatives, leave it null** — then a new plan can never silently inherit another epic's identity; it has to say what it is.
 
 ### Whose work (the assignee)
 
@@ -138,7 +138,7 @@ Synthex maps its fields onto your database's existing property names. It does no
 |---------------|-----------|-------------------------------------|
 | `title` | **Yes** | Setup cannot complete for tasks |
 | `status` | **Yes** | Setup cannot complete for tasks |
-| `workstream` | **Yes** | Setup cannot complete for tasks |
+| `epic` | **Yes** | Setup cannot complete for tasks |
 | `complexity` | No | Recorded in the plan overview page |
 | `milestone` | No | Recorded in the plan overview page |
 | `dependencies` | No | Recorded in the plan overview page |
@@ -220,12 +220,12 @@ notion:
 | `mcp_unavailable` | The Notion MCP server isn't configured in this session |
 | `notion_auth_failed` | MCP is present but not authorized for this workspace |
 | `target_not_found` | The page or database was deleted, or isn't shared with the integration |
-| `permission_denied` | The integration can't write there, or a row failed the workstream check |
+| `permission_denied` | The integration can't write there, or a row failed the epic check |
 | `schema_mismatch` | A required property mapping is missing or the wrong type — re-run the wizard |
 | `rate_limited` | Notion throttled the request; retried once |
 | `conflict` | Someone edited the page while Synthex was writing; re-read and retry |
 
-One exception to fall-back: a workstream-scoping failure never degrades to an unscoped query. Synthex stops touching tasks and tells you why.
+One exception to fall-back: a epic-scoping failure never degrades to an unscoped query. Synthex stops touching tasks and tells you why.
 
 ---
 

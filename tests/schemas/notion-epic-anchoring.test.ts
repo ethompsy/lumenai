@@ -106,8 +106,8 @@ describe('Epic anchoring and the epics/work-items model', () => {
 
     it('an epic-scoped resolve without an anchor fails rather than guessing', () => {
       // Falling back to docs_root would mix initiatives together.
-      expect(contract).toMatch(/An epic-scoped `resolve` requires a resolved workstream/);
-      expect(docStore).toMatch(/An epic-scoped type requires `config\.workstream_page`/);
+      expect(contract).toMatch(/An epic-scoped `resolve` requires a resolved epic/);
+      expect(docStore).toMatch(/An epic-scoped type requires `config\.epic_page`/);
       expect(docStore).toMatch(/Do not fall back to `config\.docs_root`/);
     });
 
@@ -132,7 +132,7 @@ describe('Epic anchoring and the epics/work-items model', () => {
 
   describe('Relation reference resolution', () => {
     it('contract states that a relation needs a UUID, not a name', () => {
-      expect(contract).toMatch(/^### Resolving the workstream reference$/m);
+      expect(contract).toMatch(/^### Resolving the epic reference$/m);
       expect(contract).toMatch(/\*\*Notion cannot filter a relation by page name\.\*\*/);
     });
 
@@ -170,7 +170,7 @@ describe('Epic anchoring and the epics/work-items model', () => {
     });
 
     it('a tag cannot anchor documents, and that is stated', () => {
-      // Easy to miss: select-typed workstreams lose epic anchoring entirely.
+      // Easy to miss: select-typed epics lose epic anchoring entirely.
       expect(sharedDoc).toMatch(/anchoring needs a page; a tag is not a page/i);
       expect(wizard).toMatch(/anchoring needs a page, and a tag is not a page/);
     });
@@ -258,6 +258,35 @@ describe('Epic anchoring and the epics/work-items model', () => {
       const wip = read('commands/write-implementation-plan.md');
       expect(wip).toMatch(/Do not create an epic row unless the user asks/);
       expect(wip).toMatch(/no basis to fill in/);
+    });
+  });
+
+  describe('The epic-link property is identified deliberately', () => {
+    // The linkage property is commonly named `Epic`, but a work database can
+    // accumulate similarly-named fields from earlier processes. Pointing
+    // Synthex at the wrong one yields queries that match nothing — which
+    // presents as "no work left" rather than as a misconfiguration.
+    it('config names the expected property and warns about lookalikes', () => {
+      const text = read('config/defaults.yaml');
+      expect(text).toMatch(/commonly a relation property literally called "Epic"/);
+      expect(text).toMatch(/other similarly-named\s*#?\s*fields left over from an earlier process/);
+      expect(text).toMatch(/looks like "no work left"/);
+    });
+
+    it('wizard proposes rather than assumes', () => {
+      expect(wizard).toMatch(/\*\*Propose, do not assume\.\*\*/);
+      expect(wizard).toMatch(/pre-select it and say which one you picked/);
+    });
+
+    it('wizard refuses to pre-select among similar candidates', () => {
+      expect(wizard).toMatch(/\*\*Warn about lookalikes\.\*\*/);
+      expect(wizard).toMatch(/do not pre-select any of them/);
+    });
+
+    it('wizard verifies the candidate is actually populated', () => {
+      // An empty property is the strongest signal it is not the live linkage.
+      expect(wizard).toMatch(/fetch a few rows and confirm the property is actually populated/);
+      expect(wizard).toMatch(/re-ask rather than writing it to config/);
     });
   });
 

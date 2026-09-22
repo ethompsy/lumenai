@@ -4,7 +4,7 @@
  * Synthex targets a Notion database whose schema it does not control. Two
  * behaviors have to hold:
  *
- *   1. Required mappings (title, status, workstream) fail loudly when absent —
+ *   1. Required mappings (title, status, epic) fail loudly when absent —
  *      guessing which column holds status would silently write to the wrong one.
  *   2. Optional mappings degrade rather than fail, and the degradation is
  *      reported — a silent degradation is indistinguishable from a working
@@ -23,7 +23,7 @@ import { join } from 'path';
 const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'synthex');
 const read = (rel: string) => readFileSync(join(PLUGIN, rel), 'utf8');
 
-const REQUIRED_FIELDS = ['title', 'status', 'workstream'] as const;
+const REQUIRED_FIELDS = ['title', 'status', 'epic'] as const;
 const OPTIONAL_FIELDS = [
   'complexity',
   'milestone',

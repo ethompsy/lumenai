@@ -35,7 +35,7 @@ Read `@{config_path}`.
 >
 > - `epics_database: <value>`
 > - `tasks_database: <value>`
-> - `workstream: <property>` (value read per plan; default `<value>`)
+> - `epic: <property>` (value read per plan; default `<value>`)
 > - `assignee: <property, or "not scoped">`
 > - `docs_root: <value>` (cross-cutting documents)
 > - document types routed to Notion: `<resolved list>`
@@ -114,7 +114,7 @@ Resolve every nominated target by fetching it. If a fetch fails, report `target_
 
 If the user skips both databases, print `Nothing to configure. Synthex keeps using local markdown files.` and exit without writing.
 
-### 3. Workstream Scoping (required for tasks)
+### 3. Epic Scoping (required for tasks)
 
 Skip this step only if the user skipped the task database.
 
@@ -129,8 +129,16 @@ Present them:
 > Filterable properties found in your database: `<list with types>`
 >
 > 1. **Use an existing property** — pick one from the list. If you nominated an epics database in Step 2a, prefer a **relation** property pointing at it; that is the normal shape and it lets Synthex also hang documents off the epic row.
-> 2. **Add a `Workstream` property** — Synthex adds one select property to your database. This is a schema change and needs your explicit confirmation.
+> 2. **Add a `Epic` property** — Synthex adds one select property to your database. This is a schema change and needs your explicit confirmation.
 > 3. **Use a separate database instead** — Synthex creates its own work database, leaving yours untouched.
+
+**Propose, do not assume.** When exactly one relation property points at the nominated epics database, pre-select it and say which one you picked — that is almost always the right answer, and it is commonly called `Epic`. When several properties could plausibly serve, list them all with their types and target databases and make the user choose.
+
+**Warn about lookalikes.** Work databases accumulate fields from earlier processes, so a database may carry more than one property whose name suggests epic or initiative linkage. If two or more candidates have similar names, say so explicitly and do not pre-select any of them:
+
+> Found more than one property that could link a work item to an epic: `Epic` (relation → Epics), `Workstream` (select). Only one of these is your real linkage. Picking the wrong one produces queries that match nothing — which looks like "no work left" rather than a misconfiguration, so it is worth getting right now.
+
+Verify the chosen property by querying it: fetch a few rows and confirm the property is actually populated. A candidate that is empty across every row it returns is almost certainly not the linkage in use — report that and re-ask rather than writing it to config.
 
 When the chosen property is a **relation**, note two things for the user:
 
@@ -139,26 +147,26 @@ When the chosen property is a **relation**, note two things for the user:
 
 Then handle the **value**.
 
-The property you just picked is a fact about the database's schema, so it is stored in config. The value identifies a single initiative, and a repository often has several in flight at once — so **each implementation plan carries its own value** on a `**Workstream:**` line beneath its H1, and commands read it from there. That is what stops a run from operating on the wrong epic: a command cannot touch task rows without having read the plan those rows belong to.
+The property you just picked is a fact about the database's schema, so it is stored in config. The value identifies a single initiative, and a repository often has several in flight at once — so **each implementation plan carries its own value** on a `**Epic:**` line beneath its H1, and commands read it from there. That is what stops a run from operating on the wrong epic: a command cannot touch task rows without having read the plan those rows belong to.
 
 So ask only for a *default*, and make clear it is optional:
 
-> **Default workstream value (optional)**
+> **Default epic value (optional)**
 >
-> Each implementation plan names its own workstream, so Synthex reads the value from the plan it is working on. This default only applies to plans that do not declare one.
+> Each implementation plan names its own epic, so Synthex reads the value from the plan it is working on. This default only applies to plans that do not declare one.
 >
-> - **One initiative in this repo?** Setting a default here is convenient — you can ignore workstreams from now on.
+> - **One initiative in this repo?** Setting a default here is convenient — you can ignore epics from now on.
 > - **Several initiatives at once?** Leave this blank. Each plan should speak for itself, so a new plan can never silently inherit another epic's identifier.
 
-Record the answer as `notion.workstream.value`, or leave it null if the user declines. A null default is not an error — it means every plan must declare its own, which is the safer configuration.
+Record the answer as `notion.epic.value`, or leave it null if the user declines. A null default is not an error — it means every plan must declare its own, which is the safer configuration.
 
 **If the user picks option 2**, confirm the schema change explicitly before making it, naming the database and the property:
 
-> Add a `Workstream` select property to the `<database name>` database? This modifies a database your team shares. (y/N)
+> Add a `Epic` select property to the `<database name>` database? This modifies a database your team shares. (y/N)
 
 Default is no. Decline means fall back to option 1 or 3.
 
-**Hard rule:** if no workstream property and value can be resolved, do NOT write `notion.enabled: true` for tasks. Print the reason and configure documents only. There is no unscoped fallback.
+**Hard rule:** if no epic property and value can be resolved, do NOT write `notion.enabled: true` for tasks. Print the reason and configure documents only. There is no unscoped fallback.
 
 ### 3b. Assignee Scoping (recommended when several engineers share an epic)
 
@@ -191,7 +199,7 @@ Using the fetched schema, map Synthex's canonical task fields onto real properti
 |-----------------|------------------|
 | `title` | title |
 | `status` | status, select |
-| `workstream` | select, multi-select, status, relation, text |
+| `epic` | select, multi-select, status, relation, text |
 
 **Optional** — offer a mapping when a plausible property exists; otherwise record the degradation and move on:
 
@@ -207,7 +215,7 @@ Then map the four canonical statuses (`pending`, `in_progress`, `done`, `blocked
 Report the resulting degradations plainly, so the user knows what will not be a queryable column:
 
 ```
-Mapped:      title -> Name, status -> Status, workstream -> Team, complexity -> Size
+Mapped:      title -> Name, status -> Status, epic -> Team, complexity -> Size
 Not mapped:  milestone, dependencies  (recorded in the plan overview page instead)
 ```
 
@@ -244,7 +252,7 @@ Ask via `AskUserQuestion`, multi-select:
 > - RFCs
 > - Runbooks
 
-If the workstream property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
+If the epic property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
 
 Translate the selection into config:
 
@@ -267,7 +275,7 @@ notion:
   tasks_database: <resolved database id>
   docs_root: <resolved page id, or null>      # cross-cutting documents only
   targets: { <doc_type>: <resolved page id>, ... }
-  workstream:
+  epic:
     property: <property name>
     value: <default value, or null>
   assignee:
@@ -290,7 +298,7 @@ Notion backend configured.
 
   Epics database:   <database name>            (or "none — scoping by tag")
   Work database:    <database name>
-  Scoped by:        <workstream property>  +  <assignee property, or "no assignee scoping">
+  Scoped by:        <epic property>  +  <assignee property, or "no assignee scoping">
   Cross-cutting:    <page title, or "kept in git">
 
   Epic-scoped docs: <list>   -> subpages of each epic
@@ -302,7 +310,7 @@ Notion backend configured.
 
 How this works day to day:
 
-  Each implementation plan names its own epic on a **Workstream:** line beneath
+  Each implementation plan names its own epic on a **Epic:** line beneath
   its H1. Synthex reads that line, finds the epic, and from there knows both
   where the initiative's documents live and which work items are in scope.
 
@@ -320,8 +328,8 @@ Re-run /synthex:configure-notion any time to change this, or to disable it.
 
 1. **Never auto-select a target.** Ambiguous search results are presented, not resolved.
 2. **Never change a schema without explicit confirmation**, and default that confirmation to no.
-3. **Never enable tasks unscoped.** No workstream property means documents-only configuration. A null default *value* is fine — plans supply their own.
-4. **Never derive a workstream value.** Not from a repo name, a branch, or a plan filename. A value matching no rows yields an empty queue that reads as "all work complete."
+3. **Never enable tasks unscoped.** No epic property means documents-only configuration. A null default *value* is fine — plans supply their own.
+4. **Never derive a epic value.** Not from a repo name, a branch, or a plan filename. A value matching no rows yields an empty queue that reads as "all work complete."
 5. **Never write credentials to config.**
 6. **Verify every target by fetching it** before writing it to config.
 7. **Show degradations plainly.** The user should finish this wizard knowing exactly which fields are not queryable.
@@ -329,5 +337,5 @@ Re-run /synthex:configure-notion any time to change this, or to disable it.
 
 ## Source Authority
 
-- [`../agents/_shared/document-store-contract.md`](../agents/_shared/document-store-contract.md) — §1 backend resolution, §4 workstream scoping, §5 property mapping
+- [`../agents/_shared/document-store-contract.md`](../agents/_shared/document-store-contract.md) — §1 backend resolution, §4 epic scoping, §5 property mapping
 - FR-NB6 (configuration wizard), FR-NB8 (data-transmission consent)

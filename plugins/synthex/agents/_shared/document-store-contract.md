@@ -7,7 +7,7 @@
 ## Source authority
 
 - FR-NB1 (backend resolution order)
-- FR-NB4 (workstream scoping — the multi-team safety guarantee)
+- FR-NB4 (epic scoping — the multi-team safety guarantee)
 - FR-NB5 (property mapping and graceful degradation)
 - FR-NB7 (task identity)
 - FR-NB9 (error enum and fail-soft degradation)
@@ -66,10 +66,10 @@ Document types divide along a line that predates this feature: some belong to a 
 
 | Scope | Document types | Anchored to |
 |-------|---------------|-------------|
-| **Epic-scoped** | `requirements`, `implementation_plan`, `retros` | the workstream's own page |
+| **Epic-scoped** | `requirements`, `implementation_plan`, `retros` | the epic's own page |
 | **Cross-cutting** | `specs`, `decisions`, `rfcs`, `runbooks` | `notion.docs_root`, or the filesystem |
 
-In Notion every row of a database is itself a page and can contain subpages, so when the workstream is a row in an epics database, that row is the natural anchor for the initiative's documents. Its PRD, plan, and retrospectives become subpages of it, and its work items relate to it — one entry point for everything about that initiative, with nothing for a reader to navigate between.
+In Notion every row of a database is itself a page and can contain subpages, so when the epic is a row in an epics database, that row is the natural anchor for the initiative's documents. Its PRD, plan, and retrospectives become subpages of it, and its work items relate to it — one entry point for everything about that initiative, with nothing for a reader to navigate between.
 
 Cross-cutting documents have no such anchor and resolve against `notion.docs_root`. They default to the `filesystem` backend, because Synthex itself reads them on every review invocation and they are engineering-internal.
 
@@ -79,7 +79,7 @@ Cross-cutting documents have no such anchor and resolve against `notion.docs_roo
 
 1. An explicit `ref` supplied by the caller
 2. `notion.targets.<doc_type>` — resolved page IDs that `configure-notion` writes as it nominates or creates each target. Deterministic, and survives the page being renamed.
-3. **Epic-scoped types:** a subpage of the resolved workstream page whose title matches the type's conventional name
+3. **Epic-scoped types:** a subpage of the resolved epic page whose title matches the type's conventional name
 4. **Cross-cutting types:** a child of `notion.docs_root` whose title matches
 
 Conventional subpage titles for epic-scoped types:
@@ -92,7 +92,7 @@ Conventional subpage titles for epic-scoped types:
 
 Steps 3 and 4 MUST fail with `target_not_found` rather than choose when more than one candidate matches. Silently reading the wrong PRD is worse than failing.
 
-An epic-scoped `resolve` requires a resolved workstream (§4). Without one it fails `schema_mismatch` — there is no anchor to resolve against, and falling back to `docs_root` would silently mix one initiative's documents into another's.
+An epic-scoped `resolve` requires a resolved epic (§4). Without one it fails `schema_mismatch` — there is no anchor to resolve against, and falling back to `docs_root` would silently mix one initiative's documents into another's.
 
 ### `version`
 
@@ -150,55 +150,53 @@ These are the canonical values used in code and prose. The `notion` backend maps
 
 ---
 
-## 4. Workstream scoping (FR-NB4)
+## 4. Epic scoping (FR-NB4)
 
 **Normative and non-negotiable.** Synthex writes into databases that already hold other teams' work, so its reads and writes MUST be scoped.
 
 For the `notion` backend:
 
-1. Every task row Synthex creates MUST be stamped with the configured workstream value.
-2. Every `list_tasks` query MUST filter on the workstream property.
-3. Every `update_task_status` and `annotate_task` MUST verify the target row carries the configured workstream value before writing, and fail with `permission_denied` if it does not.
+1. Every task row Synthex creates MUST be stamped with the configured epic value.
+2. Every `list_tasks` query MUST filter on the epic property.
+3. Every `update_task_status` and `annotate_task` MUST verify the target row carries the configured epic value before writing, and fail with `permission_denied` if it does not.
 
 A backend that cannot scope its queries MUST refuse to operate against a shared database. Falling back to an unscoped query is **never** an acceptable degradation — it risks reading and mutating tickets that do not belong to Synthex.
 
-For the `filesystem` backend, workstream scoping is a no-op: the plan file contains only this project's tasks.
+For the `filesystem` backend, epic scoping is a no-op: the plan file contains only this project's tasks.
 
 ### The property is workspace-wide; the value is per-plan
 
-The workstream **property** is a fact about the target database's schema, so it is configured once in `notion.workstream.property`.
+The epic **property** is a fact about the target database's schema, so it is configured once in `notion.epic.property`.
 
-The workstream **value** identifies one initiative, and a repository commonly has several in flight at once — Synthex already supports this on the filesystem, where each initiative is its own plan document (`docs/plans/<initiative>.md`). A single configured value would make every initiative's rows indistinguishable, so `list_tasks` for one epic would return another epic's work and the plan-complete check would never fire until both finished.
+The epic **value** identifies one initiative, and a repository commonly has several in flight at once — Synthex already supports this on the filesystem, where each initiative is its own plan document (`docs/plans/<initiative>.md`). A single configured value would make every initiative's rows indistinguishable, so `list_tasks` for one epic would return another epic's work and the plan-complete check would never fire until both finished.
 
-The value is therefore carried by the plan itself. Every implementation plan records its own workstream on a `**Workstream:**` line immediately beneath its H1:
+The value is therefore carried by the plan itself. Every implementation plan records its own epic on a `**Epic:**` line immediately beneath its H1:
 
 ```markdown
 # Implementation Plan: Billing Migration
 
-**Workstream:** Billing Migration
+**Epic:** Billing Migration
 ```
 
 Resolution order for the value, first match wins:
 
-1. The plan document's `**Workstream:**` line — **authoritative**
-2. `notion.workstream.value` — a default for plans that do not declare one
+1. The plan document's `**Epic:**` line — **authoritative**
+2. `notion.epic.value` — a default for plans that do not declare one
 3. Neither → `schema_mismatch`; refuse to operate on tasks
 
-Binding the value to the plan is what makes targeting the wrong initiative structurally impossible rather than merely discouraged: a command cannot query or write task rows without having read the plan those rows belong to, and the plan names its own workstream. There is no flag to forget and no config entry to fall out of sync.
+Binding the value to the plan is what makes targeting the wrong initiative structurally impossible rather than merely discouraged: a command cannot query or write task rows without having read the plan those rows belong to, and the plan names its own epic. There is no flag to forget and no config entry to fall out of sync.
 
-**Callers resolve the value; adapters do not.** A command already reads the plan, so it extracts the value and passes it in the `workstream` config it hands the task store. The task store never reads plan documents — it validates that both `property` and `value` are present and refuses otherwise (§4, rule 1). The adapter's input contract is unchanged by this.
+**Callers resolve the value; adapters do not.** A command already reads the plan, so it extracts the value and passes it in the `epic` config it hands the task store. The task store never reads plan documents — it validates that both `property` and `value` are present and refuses otherwise (§4, rule 1). The adapter's input contract is unchanged by this.
 
 Under the `filesystem` backend the line is still written, and is inert. Keeping both backends' plan documents identical in shape means a plan can move between them without rewriting, and a plan authored locally already carries what the Notion backend will need.
 
-`**Epic:**` is accepted as a synonym for the label, since teams whose workstreams are epics write it that way. `**Workstream:**` is canonical because the contract is backend-neutral — a future tracker may not call them epics.
-
-### Resolving the workstream reference
+### Resolving the epic reference
 
 The value must resolve to whatever the scoping property can actually be filtered on, and that depends on the property's type.
 
 | Property type | Filter value must be | So the plan's value is |
 |---------------|---------------------|------------------------|
-| `relation` | a page **UUID** | a link or URL carrying the workstream page's id |
+| `relation` | a page **UUID** | a link or URL carrying the epic page's id |
 | `select`, `multi_select`, `status`, text | the option or string itself | the plain name |
 
 **Notion cannot filter a relation by page name.** A plan naming its epic as bare text against a relation property filters on nothing and returns an empty result set — which is indistinguishable from "this initiative has no work left." That failure is silent and wrong in the most damaging direction, so it MUST be prevented rather than tolerated.
@@ -215,13 +213,13 @@ A resolved reference MUST NOT be invented from a filename, branch, page title, o
 
 ### Assignee scoping
 
-A shared work database usually carries work for many engineers within the same initiative, so workstream scoping alone can still collide: two engineers running Synthex against one epic could select the same item.
+A shared work database usually carries work for many engineers within the same initiative, so epic scoping alone can still collide: two engineers running Synthex against one epic could select the same item.
 
 When `notion.assignee.property` is configured, task queries MUST additionally scope to work the invoking engineer may legitimately take:
 
 > assigned to **me**, **or** unassigned
 
-Unassigned items are claimable; items assigned to someone else are not. Expressed as a filter, this is the workstream predicate ANDed with a nested `or` of `person_contains me` and `is_empty`.
+Unassigned items are claimable; items assigned to someone else are not. Expressed as a filter, this is the epic predicate ANDed with a nested `or` of `person_contains me` and `is_empty`.
 
 Two behaviors make the claim real rather than advisory:
 
@@ -232,7 +230,7 @@ Claiming is the only property beyond status that a status transition may write, 
 
 The current user is resolved at runtime from the MCP, so no configuration identifies the engineer.
 
-When `notion.assignee.property` is null, assignee scoping is skipped entirely and workstream scoping alone applies. That is correct for an epic effectively owned by one engineer, and it is the documented cost of leaving it unset.
+When `notion.assignee.property` is null, assignee scoping is skipped entirely and epic scoping alone applies. That is correct for an epic effectively owned by one engineer, and it is the documented cost of leaving it unset.
 
 ---
 
@@ -244,7 +242,7 @@ The `notion` backend targets a database that already exists, whose schema Synthe
 |-----------------|-------------|------------------------|
 | `title` | **Required** | Refuse to operate; `schema_mismatch` |
 | `status` | **Required** | Refuse to operate; `schema_mismatch` |
-| `workstream` | **Required** (§4) | Refuse to operate; `schema_mismatch` |
+| `epic` | **Required** (§4) | Refuse to operate; `schema_mismatch` |
 | `complexity` | Optional | Recorded in the plan overview page |
 | `milestone` | Optional | Recorded in the plan overview page |
 | `dependencies` | Optional | Recorded in the plan overview page |
@@ -265,7 +263,7 @@ When an operation fails it MUST return one of these values. Implementations MUST
 | `mcp_unavailable` | The Notion MCP server is not configured or not reachable | Terminal |
 | `notion_auth_failed` | MCP reachable but not authorized for this workspace | Terminal |
 | `target_not_found` | Configured page or database does not exist or is not shared with the integration | Terminal |
-| `permission_denied` | Authorized but not permitted to read/write the target, or the row failed the workstream check (§4) | Terminal |
+| `permission_denied` | Authorized but not permitted to read/write the target, or the row failed the epic check (§4) | Terminal |
 | `schema_mismatch` | A required property mapping is absent or the wrong type | Terminal |
 | `rate_limited` | Notion returned a rate-limit response | Retry once with backoff |
 | `conflict` | The document changed since `version` was read | Re-read and re-apply |
@@ -279,7 +277,7 @@ Default is **fail-soft**: on any error, fall back to the `filesystem` backend fo
 
 Two exceptions to fail-soft:
 
-- **Workstream-scoping failure (§4)** never degrades to an unscoped query.
+- **Epic-scoping failure (§4)** never degrades to an unscoped query.
 - **`mcp_unavailable` across the board** emits a single remediation message rather than one warning per document type, mirroring the `NFR-MR2` cloud-surface pattern.
 
 ---
@@ -314,15 +312,15 @@ Layer 1 validators MUST enforce:
 - `backend` ∈ {`filesystem`, `notion`}
 - Canonical task `status` ∈ {`pending`, `in_progress`, `done`, `blocked`}
 - Acceptance-criteria `type` ∈ {`T`, `H`, `O`}
-- Every task query and write in the Notion adapters is workstream-scoped (§4)
+- Every task query and write in the Notion adapters is epic-scoped (§4)
 - Required property mappings present; optional ones degrade rather than fail (§5)
 
-Implemented in `tests/schemas/document-store-envelope.ts`, `tests/schemas/notion-workstream-scoping.test.ts`, and `tests/schemas/notion-property-mapping.test.ts`. This document is the source of truth for those validators.
+Implemented in `tests/schemas/document-store-envelope.ts`, `tests/schemas/notion-epic-scoping.test.ts`, and `tests/schemas/notion-property-mapping.test.ts`. This document is the source of truth for those validators.
 
 ## Used by
 
 - `notion-document-store` — document operations (§2)
-- `notion-task-store` — task operations (§3), workstream scoping (§4), property mapping (§5)
+- `notion-task-store` — task operations (§3), epic scoping (§4), property mapping (§5)
 - `configure-notion` — schema discovery and mapping setup (§5), consent for any schema change
 - Commands resolving documents through the contract: `write-implementation-plan`, `refine-requirements`, `next-priority`, `write-adr`, `write-rfc`, `retrospective`, `reliability-review`
 - `plan-scribe`, `plan-linter`, `product-manager` — canonical task model (§3)

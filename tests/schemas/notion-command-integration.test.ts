@@ -144,10 +144,10 @@ describe('FR-NB1: command integration', () => {
       }
     });
 
-    it('scopes the plan-complete check to the workstream', () => {
+    it('scopes the plan-complete check to the epic', () => {
       // "All tasks done" must mean all of *this project's* tasks, not every
       // row in a database shared with other teams.
-      expect(text).toMatch(/plan-complete check in Step 1 uses the workstream-filtered queue/);
+      expect(text).toMatch(/plan-complete check in Step 1 uses the epic-filtered queue/);
       expect(text).toMatch(/must never gate its completion/);
     });
 
