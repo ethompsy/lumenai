@@ -35,7 +35,8 @@ Meanwhile those same people already have a place they track work: Notion.
 | **Document store contract** | The normative operations envelope both backends implement, at `plugins/synthex/agents/_shared/document-store-contract.md`. Commands speak this instead of naming filesystem paths. |
 | **Epics database** | An existing Notion database whose rows are epics or initiatives. Every row is itself a page, so it anchors that initiative's documents as subpages. |
 | **Work database** | An existing Notion database holding the work items epics break down into, related back to their epic. Where Synthex writes task rows. |
-| **Epic-scoped document** | A document belonging to one initiative — `requirements`, `implementation_plan`, `retros`. Resolves to a subpage of that initiative's epic row. |
+| **Epic-scoped document** | A document belonging to one initiative — `brief`, `requirements`, `implementation_plan`, `retros`. Resolves to that initiative's epic row, or a subpage of it. |
+| **Brief** | The standardized statement of why an initiative exists, for whom, what changes, what is out of scope, and how success is judged. Lives in the epic's own body under Notion, and at `documents.brief` on the filesystem. The PRD links to it rather than restating it. |
 | **Cross-cutting document** | A document that outlives any single initiative — `specs`, `decisions`, `rfcs`, `runbooks`. Has no epic anchor; resolves against the docs root, and defaults to the filesystem. |
 | **Assignee scoping** | A second scoping dimension within an epic: Synthex acts only on work assigned to the invoking engineer or unassigned, and claims an item when it starts one. |
 | **Docs root** | An existing Notion page rooting cross-cutting documents. Synthex adds children and never reorganizes what is already there. |
@@ -73,11 +74,15 @@ The implementation guarantee is stronger than "produces the same result": comman
 
 The contract defines six operations for prose documents: `resolve`, `read`, `write`, `patch`, `create`, `list`. Handles are opaque; callers MUST NOT parse or construct them.
 
-**Document types divide by scope.** `requirements`, `implementation_plan`, and `retros` belong to one initiative and are **epic-scoped**: they resolve to subpages of that initiative's epic row. Every row of a Notion database is itself a page that can hold subpages, so the epic row is the natural anchor — its requirements, plan, and retrospectives sit beneath it, and its work items relate to it, giving one entry point for the whole initiative.
+**Document types divide by scope.** `brief`, `requirements`, `implementation_plan`, and `retros` belong to one initiative and are **epic-scoped**. All but `brief` resolve to subpages of that initiative's epic row; `brief` resolves to the epic row **itself**. Every row of a Notion database is itself a page that can hold subpages, so the epic row is the natural anchor — its requirements, plan, and retrospectives sit beneath it, and its work items relate to it, giving one entry point for the whole initiative.
 
 `specs`, `decisions`, `rfcs`, and `runbooks` are **cross-cutting**: they outlive every initiative, have no epic anchor, and resolve against `notion.docs_root`. They default to the `filesystem` backend because Synthex reads them on every review invocation and they are engineering-internal.
 
 Targets resolve in the order: explicit caller `ref` → `notion.targets.<doc_type>` (written by the wizard for cross-cutting types; deterministic and survives a rename) → for epic-scoped types, a conventionally-titled subpage of the resolved epic row → for cross-cutting types, a title-matched child of `notion.docs_root`. Any title match MUST fail rather than choose when several match.
+
+**The brief is the epic's body.** It answers why the initiative exists, for whom, and how success is judged — which is what an epic row is for. It therefore MUST be written with a section-scoped `patch`, never a full-document `write`: an epic body holds content the team authored, and a whole-page replace would discard it. `notion.targets.brief` is meaningless and MUST be ignored.
+
+When an epic body is already populated, it MUST be read as a source and refined into the standard brief format collaboratively — not replaced, and not left inconsistent. Content mapping to no standard section MUST be surfaced to the user or preserved under `Additional context`; it MUST NOT be dropped. Reshaping prose into a template is where material silently disappears, and a deleted framing is not one its author will know to look for.
 
 An epic-scoped resolve without a resolved epic MUST fail `schema_mismatch`. It MUST NOT fall back to the docs root, which would file one initiative's document into a shared page or resolve onto another initiative's identically-titled one.
 

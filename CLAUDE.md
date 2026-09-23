@@ -152,7 +152,7 @@ Narrow-scope agents that let expensive Opus/Sonnet agents delegate mechanical wo
 | `commit-message-author` | Authors a single commit message from a change set; detects project convention from `git log`, defaults to Conventional Commits 1.0.0 | Utility |
 | `findings-consolidator` | Dedup, group, and sort findings from multiple reviewers (preserves attribution) | Utility |
 | `plan-linter` | Structural audit of implementation plan drafts against the template rubric | Utility |
-| `prd-linter` | Structural **and provenance** audit of PRD drafts: every requirement tagged `[S]`/`[U]`/`[D]`/`[A]` with a citation, and no unconfirmed assumption left standing | Utility |
+| `prd-linter` | Structural **and provenance** audit of brief and PRD drafts: every requirement tagged `[S]`/`[U]`/`[D]`/`[A]` with a citation, no unconfirmed assumption left standing, and — when a brief was refined from existing content — nothing lost in the reshape | Utility |
 | `plan-scribe` | Applies Product Manager's decided edits to the plan document mechanically | Utility |
 | `context-bundle-assembler` | Haiku-backed; assembles the canonical context bundle delivered to every multi-model review proposer (FR-MR28, D5) | Utility |
 | `audit-artifact-writer` | Haiku-backed; writes per-invocation audit-artifact markdown files for multi-model review runs (FR-MR24). Command-agnostic per D20. | Utility |
@@ -175,7 +175,7 @@ Narrow-scope agents that let expensive Opus/Sonnet agents delegate mechanical wo
 | `cancel-loop` | Cancel a loop by id, or `--all` running loops in the project. Mutates state-file `status: "cancelled"` atomically; idempotent on terminal-status loops. Polled at the looping command's iteration boundary (worst-case latency: one iteration). | — |
 | `next-priority` | Execute next highest-priority tasks. Supports `--loop` for native iteration until every task is `done` (or milestone-boundary exit). Supports `--auto-decide` so the Tech Lead resolves discretionary escalations with its own recommendation instead of asking, recording the decision and alternatives for later review; `[H]` acceptance-criteria approval is always exempt. | Tech Lead |
 | `refine-requirements` | Improve PRD clarity through multi-agent review | PM + Tech Lead + Lead Frontend Engineer |
-| `write-prd` | Author a PRD through guided discovery and an interview, grounded in source material supplied via repeatable `--from` (files, globs, dirs, URLs, Notion pages) and auto-discovered from the repo. Every requirement carries a provenance tag; unconfirmed assumptions block. `--brief-only` stops after discovery. Hands off to `refine-requirements`. | PM + prd-linter |
+| `write-prd` | Establish the **brief** (the epic's own body under Notion, refined collaboratively from whatever is already there), then author a requirements-only PRD from source material supplied via repeatable `--from` (files, globs, dirs, URLs, Notion pages) and auto-discovered from the repo. Every requirement carries a provenance tag; unconfirmed assumptions block. `--brief-only` stops after the brief. Hands off to `refine-requirements`. | PM + prd-linter |
 | `write-implementation-plan` | Transform PRD into implementation plan. Supports multi-model plan-review via the orchestrator (FR-MR22); no complexity gate applied. Use `--multi-model` / `--no-multi-model` to override config. | PM + Architect + design-system-agent + Tech Lead |
 | `review-code` | Multi-perspective code review. Supports multi-model review via FR-MR21 8-step decision framework + complexity gate (FR-MR21a). Use `--multi-model` / `--no-multi-model` to override config. When multi-model is active, fans out to native + external proposers via the orchestrator. | Code Reviewer + Security Reviewer + Performance Engineer (opt.) |
 | `write-adr` | Create Architecture Decision Record | Architect (interactive) |
@@ -223,7 +223,9 @@ Each implementation plan names its own epic on a `**Epic:**` line beneath its H1
 
 Scoping has a second dimension. When `notion.assignee.property` is set, Synthex acts only on work **assigned to the current user or unassigned**, and claims an item by assigning it when it moves to `in_progress` — so several engineers can work one epic without selecting the same item. Items another engineer holds are never read, modified, or reassigned.
 
-Documents split by scope: `requirements`, `implementation_plan`, and `retros` are epic-scoped; `specs`, `decisions`, `rfcs`, and `runbooks` are cross-cutting and default to the filesystem, since `review-code` reads them on every invocation.
+Documents split by scope: `brief`, `requirements`, `implementation_plan`, and `retros` are epic-scoped; `specs`, `decisions`, `rfcs`, and `runbooks` are cross-cutting and default to the filesystem, since `review-code` reads them on every invocation.
+
+The `brief` is the epic's **own body** rather than a subpage, so each artifact answers exactly one question — brief: *why, for whom, how we'll know*; PRD: *what must be true*; plan: *how and in what order*. The PRD links to the brief instead of restating it, so there is no second copy to drift.
 
 Run `/synthex:configure-notion` to set it up. See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for the setup guide, [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design, and [`plugins/synthex/agents/_shared/document-store-contract.md`](plugins/synthex/agents/_shared/document-store-contract.md) for the normative contract.
 
@@ -302,7 +304,8 @@ See `plugins/synthex/config/defaults.yaml` for the full reference. Key settings:
 | `prd.max_source_bytes` | `200000` | Total cap on source material ingested by `write-prd` |
 | `prd.max_file_bytes` | `40000` | Per-document cap; larger sources are summarized |
 | `prd.assumption_policy` | `blocking` | `blocking` makes an unconfirmed `[A]` requirement CRITICAL; `warn` lets a PRD ship with acknowledged assumptions |
-| `documents.requirements` | `docs/reqs/main.md` | Default PRD path |
+| `documents.brief` | `docs/reqs/brief.md` | Brief path on the filesystem backend. Under Notion the brief is the epic's **own body**, written with a section-scoped patch |
+| `documents.requirements` | `docs/reqs/main.md` | Default PRD path — requirements only; links to the brief rather than restating it |
 | `documents.implementation_plan` | `docs/plans/main.md` | Default plan path |
 | `documents.specs` | `docs/specs` | Specs directory |
 | `documents.backend` | `filesystem` | Global document backend: `filesystem` or `notion` |

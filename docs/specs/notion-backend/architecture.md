@@ -164,7 +164,11 @@ Degradations are reported in the response envelope, because a silent degradation
 
 Documents split along a line that predates this feature: `requirements`, `implementation_plan`, and `retros` belong to one initiative; `specs`, `decisions`, `rfcs`, and `runbooks` outlive every initiative.
 
-The epic-scoped three anchor to the epic row. The cross-cutting four have no anchor, resolve against the docs root, and **default to the filesystem** — Synthex reads specs and decisions on every review invocation, so fetching them over MCP would tax every review, and they are engineering-internal anyway.
+The epic-scoped four anchor to the epic row — and `brief` is anchored *as* the row, not beneath it.
+
+That exception carries the information architecture. Each artifact answers exactly one question: the brief answers *why, for whom, and how we'll know*; the PRD answers *what must be true*; the plan answers *how and in what order*; the work items answer *what state each piece is in*. Before this, the brief's content was duplicated across an epic body nobody owned and the PRD's opening sections, which meant two copies that could disagree with nothing detecting it. Giving the brief a single canonical home lets the PRD drop those sections entirely and become requirements-only.
+
+The cost, accepted deliberately: a PRD is no longer readable alone. A reader needs the brief too. That is the price of having nothing duplicated, and therefore nothing able to drift. The cross-cutting four have no anchor, resolve against the docs root, and **default to the filesystem** — Synthex reads specs and decisions on every review invocation, so fetching them over MCP would tax every review, and they are engineering-internal anyway.
 
 An epic-scoped resolve without a resolved epic fails rather than falling back to the docs root. Falling back would file one initiative's PRD into a shared page, or resolve onto another initiative's identically-titled document — a silent cross-contamination worse than an error.
 

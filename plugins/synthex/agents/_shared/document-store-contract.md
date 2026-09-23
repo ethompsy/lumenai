@@ -66,12 +66,26 @@ Document types divide along a line that predates this feature: some belong to a 
 
 | Scope | Document types | Anchored to |
 |-------|---------------|-------------|
-| **Epic-scoped** | `requirements`, `implementation_plan`, `retros` | the epic's own page |
+| **Epic-scoped** | `brief`, `requirements`, `implementation_plan`, `retros` | the epic's own page |
 | **Cross-cutting** | `specs`, `decisions`, `rfcs`, `runbooks` | `notion.docs_root`, or the filesystem |
 
 In Notion every row of a database is itself a page and can contain subpages, so when the epic is a row in an epics database, that row is the natural anchor for the initiative's documents. Its PRD, plan, and retrospectives become subpages of it, and its work items relate to it — one entry point for everything about that initiative, with nothing for a reader to navigate between.
 
 Cross-cutting documents have no such anchor and resolve against `notion.docs_root`. They default to the `filesystem` backend, because Synthex itself reads them on every review invocation and they are engineering-internal.
+
+### The brief is the epic's own body
+
+`brief` is epic-scoped like the others, but it resolves to the epic page **itself** rather than to a subpage of it. The brief answers *why are we doing this, for whom, and how will we know it worked* — which is precisely what an epic row is for, and where stakeholders already look.
+
+This has three consequences.
+
+**It is a `patch` target, never a `write` target.** An epic body belongs to the team and commonly holds content Synthex did not author. A full-document `write` would discard it. Every brief update MUST be section-scoped, so body content outside the brief's own sections survives untouched.
+
+**An existing body is input, not an obstacle.** When the body is populated, it is read as a source and refined into the standard brief format collaboratively — not replaced, and not left inconsistent. Content that maps to no standard section MUST be surfaced to the user or preserved under `Additional context`; it MUST NOT be dropped. Reshaping prose into a template is exactly where material quietly disappears, and silently deleting a PM's framing is not a recoverable error.
+
+**It has no conventional title**, because it is not a child page. Resolution for `brief` is the resolved epic page, full stop — `notion.targets.brief` is meaningless and MUST be ignored if present.
+
+Under the `filesystem` backend the brief is an ordinary document at `documents.brief`, and all of the above except the title rule applies unchanged.
 
 ### Target resolution
 
@@ -89,6 +103,7 @@ Conventional subpage titles for epic-scoped types:
 | `requirements` | `Product Requirements` |
 | `implementation_plan` | `Implementation Plan` |
 | `retros` | `Retrospective <YYYY-MM-DD>` — dated, since retrospectives accumulate; `list` returns them newest first |
+| `brief` | *(none — resolves to the epic page itself, not a subpage)* |
 
 Steps 3 and 4 MUST fail with `target_not_found` rather than choose when more than one candidate matches. Silently reading the wrong PRD is worse than failing.
 

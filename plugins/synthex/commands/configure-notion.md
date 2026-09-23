@@ -239,11 +239,12 @@ Ask via `AskUserQuestion`, multi-select:
 >
 > Everything not selected stays as local markdown.
 >
-> **Epic-scoped** — these become subpages of the epic they belong to, so anyone opening the epic finds them:
+> **Epic-scoped** — these belong to one initiative, so anyone opening the epic finds them:
 >
-> - Product requirements (PRDs)
-> - Implementation plans
-> - Retrospectives
+> - The brief — *the epic's own body*, refined into a standard format
+> - Product requirements (PRDs) — a subpage
+> - Implementation plans — a subpage
+> - Retrospectives — dated subpages
 >
 > **Cross-cutting** — these outlive any one initiative and need the separate root from Step 2c. Recommended to leave in git: Synthex reads specs and decisions on every code review, so local files are faster, and they are engineering-internal.
 >
@@ -252,7 +253,7 @@ Ask via `AskUserQuestion`, multi-select:
 > - RFCs
 > - Runbooks
 
-If the epic property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
+If the epic property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to, and no body to hold the brief. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
 
 Translate the selection into config:
 

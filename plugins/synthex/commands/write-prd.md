@@ -13,9 +13,9 @@ The design commitment: **source documents change what the interview is about; th
 | Parameter | Description | Default | Required |
 |-----------|-------------|---------|----------|
 | `--from <path>` | Source material to ingest. Repeatable. Accepts a file, a glob, a directory, a URL, or a Notion page URL. | — | No |
-| `--brief-only` | Stop after discovery and write the brief, without specifying requirements. | off | No |
+| `--brief-only` | Stop once the brief is established, without specifying requirements. | off | No |
 | `requirements_path` | Where the PRD is written | `docs/reqs/main.md` | No |
-| `brief_path` | Where `--brief-only` writes | `docs/reqs/brief.md` | No |
+| `brief_path` | Brief location under the filesystem backend. Under `notion` the brief is the epic body and this is unused. | `docs/reqs/brief.md` | No |
 | `config_path` | Path to synthex project config | `.synthex/config.yaml` | No |
 
 ## Core Responsibilities
@@ -98,36 +98,61 @@ interview only about what those don't settle.
 
 This is where `--from` gets taught — at the moment it is relevant, rather than in documentation nobody reads first.
 
-### 5. Discovery
+### 5. Establish the Brief
 
-Launch the **Product Manager** sub-agent to establish four things, using `AskUserQuestion` in batches of 3–5. Draw answers from the sources where they exist; ask only where they do not.
+The brief answers *why, for whom, and how we'll know it worked.* It is the prerequisite for requirements, and under the Notion backend it lives in the **epic's own body** — which is where your stakeholders already look.
 
-| | Question |
-|---|---|
-| **Vision** | What problem does this solve, and why now? |
-| **Users** | Who is this for, and what do they do today instead? |
-| **Value** | What changes for them if this works? |
-| **Scope boundary** | What is explicitly *not* in this version? |
+#### 5a. Read what is already there
 
-The PM may offer deepening techniques — pre-mortem, negative space, Socratic on each must-have, inversion — when an answer is thin. See `product-manager.md`.
+Resolve the `brief` document type. Under `notion` that is the epic page itself, not a subpage.
 
-**Floor condition.** If vision, users, and at least one scope boundary cannot be established, **stop and report what is missing.** Do not draft. With no sources and no answers there is nothing to write a PRD from, and producing one anyway is the failure this command exists to prevent.
+- **Populated** → go to 5b. The existing content is input, not an obstacle.
+- **Empty** → go to 5c.
 
-**If `--brief-only`:** write the brief to `@{brief_path}` — vision, users, value, scope boundary, and the Source Map — and exit. The brief is a legitimate standalone artifact and also feeds `write-rfc`.
+#### 5b. Refine it collaboratively
+
+Launch the **Product Manager** sub-agent to refine the existing content into the standard five-section format, per `product-manager.md`:
+
+1. Ingest the existing content as a source.
+2. **Map** it onto the five sections and show the user what landed where. The mapping is a claim about their writing; let them check it.
+3. **Ask about gaps** — sections nothing filled.
+4. **Ask about leftovers** — content fitting no section.
+5. Show the result and get approval before writing anything.
+
+**Never silently drop existing content.** Anything that maps to no section is raised with the user or preserved verbatim under `Additional context`. Pass the original content to the linter as `prior_content` so loss is checked, not assumed.
+
+#### 5c. Author it through discovery
+
+With an empty body, run discovery to establish the same five things, drawing on the sources where they answer and asking where they do not. The PM may offer deepening techniques — pre-mortem, negative space, Socratic on each must-have, inversion.
+
+**Floor condition.** If Problem, Who it's for, and Out of scope cannot be established, **stop and report what is missing.** Do not draft. With no sources and no answers there is nothing to write from, and producing something anyway is the failure this command exists to prevent.
+
+#### 5d. Lint and write
+
+Invoke **prd-linter** with `document: "brief"`, the draft, and `prior_content` when refining. Resolve every CRITICAL — including any content the refinement lost.
+
+Write with a section-scoped **`patch`**, never a full-document `write`. An epic body holds content Synthex did not author, and a whole-page replace would discard it.
+
+**If `--brief-only`:** stop here and report what was written.
 
 ### 6. Interview the Gaps
 
-Now specify requirements. The PM asks only about what discovery and the sources left open:
+Now specify requirements. With the brief settled, the PM asks only about what it and the sources leave open:
 
 - requirements implied by a source but not stated precisely enough to build
 - **contradictions between sources** — present both positions with citations and ask; never reconcile silently
 - non-functional requirements, which sources almost never state
-- success metrics
 - anything the PM would otherwise have to assume
 
-### 7. Draft with Provenance
+Do **not** re-ask what the brief already answers. Re-interviewing settled ground is how a command earns a reputation for being tedious.
 
-The PM produces the draft per the template in `product-manager.md`. Every functional and non-functional requirement carries exactly one tag and a `**Source:**` line:
+### 7. Draft the PRD
+
+The PM produces a **requirements-only** PRD per the template in `product-manager.md`: a `**Brief:**` link, then Functional Requirements, Non-Functional Requirements, Assumptions & Constraints, Open Questions, Source Map.
+
+It does **not** restate vision, users, scope boundary, or success metrics. Those live in the brief, and a second copy only creates something that can disagree with it.
+
+Every functional and non-functional requirement carries exactly one tag and a `**Source:**` line:
 
 | Tag | Meaning |
 |-----|---------|
@@ -138,22 +163,21 @@ The PM produces the draft per the template in `product-manager.md`. Every functi
 
 Unanswered questions go to **Open Questions**, never into an invented requirement.
 
-### 8. Lint
+### 8. Lint the PRD
 
-Invoke the **prd-linter** sub-agent (Haiku) with the draft, the source manifest, and `prd.assumption_policy`.
+Invoke **prd-linter** with `document: "prd"`, the draft, and the source manifest.
 
-It returns a provenance summary and findings. Hand them to the PM, which must resolve **every CRITICAL** — including every unconfirmed `[A]`, which under the default blocking policy is CRITICAL. An assumption is resolved by confirming it with the user, grounding it in a source, or demoting it to an Open Question. HIGH findings are resolved too; MEDIUM at the PM's discretion.
+Hand the findings to the PM, which must resolve **every CRITICAL** — including every unconfirmed `[A]`, which under the default blocking policy is CRITICAL. An assumption is resolved by confirming it with the user, grounding it in a source, or demoting it to an Open Question. HIGH findings are resolved too; MEDIUM at the PM's discretion.
 
 Lint runs **once** per draft. It is not part of the review loop.
 
 ### 9. Write and Hand Off
 
-Write the finalized PRD to `@{requirements_path}`.
-
-Then report the provenance summary to the user and hand off:
+Write the PRD to `@{requirements_path}`, then report and hand off:
 
 ```
-PRD written to docs/reqs/main.md
+Brief   → epic body (5 sections, refined from existing content + 2 sources)
+PRD     → docs/reqs/main.md
 
   22 requirements — 12 sourced, 7 user-stated, 2 derived, 1 open question
   6 sources ingested, all accounted for in the Source Map
@@ -171,13 +195,14 @@ Surfacing the provenance counts is the point of tagging. A PRD that is mostly as
 
 This command reads source material and writes a PRD. When the Notion backend is enabled for `requirements`, resolve it through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
 
-**Document types touched:** `requirements` (write), `specs` (read)
+**Document types touched:** `brief` (read and **patch**), `requirements` (write), `specs` (read)
 
 **When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `requirements_path`, `brief_path` directly against the filesystem exactly as the Workflow above describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
 
 **Command-specific notes**
 
-- Under the `notion` backend the PRD becomes the `Product Requirements` subpage of its epic. Resolve the epic before writing; a PRD is epic-scoped, so without an anchor `notion-document-store` returns `schema_mismatch` rather than filing it somewhere arbitrary.
+- Under the `notion` backend the PRD becomes the `Product Requirements` subpage of its epic, and the **brief is the epic's own body** — not a subpage. Resolve the epic before writing either; both are epic-scoped, so without an anchor `notion-document-store` returns `schema_mismatch` rather than filing them somewhere arbitrary.
+- **The brief is always written with `patch`, never `write`.** An epic body holds content the team authored, and a whole-page replace would discard whatever sits outside the brief's five sections.
 - `--from` accepts Notion page URLs, so an epic's own page content, linked notes, and prior discussion can all be source material. Read them via `notion-document-store` and record them in the Source Map like any other source.
 - This command **creates** a document, so use `create`, not `write`. Never overwrite an existing page as a side effect — Step 1 governs that decision.
 

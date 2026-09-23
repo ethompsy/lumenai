@@ -73,22 +73,62 @@ Two consequences worth holding onto:
 
 ---
 
+## Brief Structure (Standard Format)
+
+The brief answers *why are we doing this, for whom, and how will we know it worked.* It is short — one page — and it is the document stakeholders read. Under the Notion backend it lives in the epic's own body; on the filesystem it lives at `documents.brief`.
+
+Use these five sections, in this order, every time. A standard shape is the point: with many engineers running many initiatives, anyone should be able to open any epic and know where to look.
+
+```markdown
+## Problem
+[What is broken or missing, and why it is worth solving now]
+
+## Who it's for
+[Specific users, and what they do today instead]
+
+## What changes
+[What is different for them if this works]
+
+## Out of scope
+[Explicitly not in this version]
+
+## How we'll know
+[Success metrics — measurable, not aspirational]
+
+---
+*Refined from: [inputs — an existing epic body, supplied sources, this interview]*
+```
+
+### Refining a populated body
+
+When the epic body (or brief file) already has content, it is **input, not an obstacle.** Do not replace it and do not leave it in a non-standard shape. Refine it collaboratively:
+
+1. **Read it and ingest it as a source.**
+2. **Map** what is there onto the five sections, and show the user what landed where. Mapping is a claim about their writing; let them see it.
+3. **Ask about gaps** — sections nothing filled.
+4. **Ask about leftovers** — content that fits no section.
+5. **Show the result and get approval** before writing anything back.
+
+**Never silently drop existing content.** Anything that maps to no section is either raised with the user or preserved verbatim under an `Additional context` heading. Reshaping prose into a template is exactly where material quietly disappears, and deleting a product manager's framing is not a recoverable mistake — they will not know to look for it.
+
+Write back with a section-scoped `patch`, never a full-document `write`, so body content outside the brief's sections survives.
+
+---
+
 ## PRD Structure (Default Template)
 
-When creating a PRD, use this structure. Adapt sections as needed based on the product's complexity.
+The PRD answers one question: **what must be true of the thing we build.** It does *not* restate the vision, the users, the scope boundary, or the success metrics — those live in the brief, and a second copy only creates something that can disagree with it.
+
+Open with a link to the brief, then go straight to requirements.
 
 ```markdown
 # Product Requirements Document: [Product Name]
 
+**Brief:** [link to the epic, or to docs/reqs/brief.md]
+
 **Provenance:** `[S]` sourced · `[U]` user-stated · `[D]` derived from the codebase · `[A]` assumed
 
-## 1. Vision & Purpose
-[Why this product exists, what problem it solves, strategic importance]
-
-## 2. Target Users / Personas
-[Who this is for, their pain points, what they need]
-
-## 3. Functional Requirements
+## 1. Functional Requirements
 [Features organized by theme/initiative, with acceptance criteria]
 ### Theme: [Name]
 #### FR-[ID]: [Requirement Title] `[S]`
@@ -97,26 +137,22 @@ When creating a PRD, use this structure. Adapt sections as needed based on the p
 **Acceptance Criteria:**
 - [Specific, testable criteria]
 
-## 4. Non-Functional Requirements
+## 2. Non-Functional Requirements
 [Performance targets, security requirements, accessibility standards, scalability needs — each tagged]
 
-## 5. Out of Scope
-[Explicitly what we are NOT building in this version]
-
-## 6. Success Metrics
-[How we measure whether this product is successful]
-
-## 7. Assumptions & Constraints
+## 3. Assumptions & Constraints
 [What we're assuming, what limits us]
 
-## 8. Open Questions
+## 4. Open Questions
 [Anything unresolved. A question belongs here rather than being answered by invention.]
 
-## 9. Source Map
+## 5. Source Map
 | Document | Contributed |
 |----------|-------------|
-| [path or URL] | [which requirements or sections came from it] |
+| [path or URL] | [which requirements came from it] |
 ```
+
+**A PRD is not readable alone, by design.** A reader needs the brief too. That is the accepted cost of having each artifact answer exactly one question: nothing is duplicated, so nothing can drift out of agreement.
 
 ---
 
@@ -145,7 +181,7 @@ A `[S]` tag without a usable citation is not a `[S]` tag. "From the meeting note
 
 ## Discovery Before Specification
 
-A PRD that starts at requirements becomes a feature list. Establish four things first, and do not draft requirements until you have them:
+A PRD that starts at requirements becomes a feature list. **Discovery produces the brief**, and the brief is the prerequisite for requirements — so establish these first, and do not draft requirements until you have them:
 
 | | Question |
 |---|---|
@@ -154,7 +190,9 @@ A PRD that starts at requirements becomes a feature list. Establish four things 
 | **Value** | What changes for them if this works? |
 | **Scope boundary** | What is explicitly *not* in this version? |
 
-The scope boundary is the one most often skipped and the one that pays off most — it populates Out of Scope, and a PRD without it invites unbounded implementation.
+The scope boundary is the one most often skipped and the one that pays off most — it populates the brief's Out of scope section, and an initiative without one invites unbounded implementation.
+
+These four questions plus success metrics are exactly the brief's five sections, which is not a coincidence: the brief is the written record of discovery. When the epic body already holds some of this, refine it rather than re-asking (see Refining a populated body).
 
 **If you cannot establish vision, users, and at least one scope boundary, stop.** Report what is missing rather than drafting. With no supplied sources and no answers, there is nothing to write a PRD *from*, and producing one anyway is exactly the failure this process exists to prevent.
 

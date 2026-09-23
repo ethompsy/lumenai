@@ -15,12 +15,14 @@
 
 Synthex's documents and implementation-plan tasks appear in Notion instead of only as markdown in your repository:
 
+- The **epic's own body becomes a standardized brief** — why this exists, who it's for, what changes, what's out of scope, how you'll know it worked. If your epic already has content, Synthex reads it and refines it into that shape *with you*; it never discards what's there.
 - An initiative's **requirements, plan, and retrospectives become subpages of its epic**, so anyone opening the epic finds them.
 - **Plan tasks become rows in your work database**, linked to that epic, with status updated as work completes.
 
 ```
 Epics DB
   ▸ Billing Migration              ← the epic you already have
+      │  body = the Brief          ← refined into a standard format, with you
       ├─ Product Requirements      ← Synthex adds these
       ├─ Implementation Plan
       └─ Retrospective 2026-09-22
@@ -176,11 +178,12 @@ notion:
 
 Document types divide by whether they belong to one initiative or outlive them all:
 
-| Epic-scoped — become subpages of the epic | Cross-cutting — no epic to hang from |
+| Epic-scoped — belong to one initiative | Cross-cutting — no epic to hang from |
 |---|---|
-| Product requirements | Technical specs |
-| Implementation plan | Architecture decisions (ADRs) |
-| Retrospectives | RFCs, runbooks |
+| The brief — *the epic's body itself* | Technical specs |
+| Product requirements | Architecture decisions (ADRs) |
+| Implementation plan | RFCs |
+| Retrospectives | Runbooks |
 
 The recommended split, which is also the default:
 

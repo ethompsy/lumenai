@@ -116,13 +116,15 @@ describe('PRD authoring pipeline', () => {
   });
 
   describe('Discovery precedes specification', () => {
-    it('command runs a discovery step', () => {
-      expect(cmd).toMatch(/^### 5\. Discovery$/m);
+    it('command establishes the brief before requirements', () => {
+      expect(cmd).toMatch(/^### 5\. Establish the Brief$/m);
+      expect(cmd).toMatch(/^#### 5c\. Author it through discovery$/m);
+      expect(cmd).toMatch(/prerequisite for requirements/);
     });
 
-    it('establishes vision, users, value, and a scope boundary', () => {
-      for (const t of ['Vision', 'Users', 'Value', 'Scope boundary']) {
-        expect(cmd, `discovery omits ${t}`).toContain(t);
+    it('establishes the five brief sections', () => {
+      for (const t of ['Problem', "Who it's for", 'What changes', 'Out of scope', "How we'll know"]) {
+        expect(pm, `brief template omits ${t}`).toContain(t);
       }
     });
 
@@ -147,9 +149,9 @@ describe('PRD authoring pipeline', () => {
       expect(pm).toMatch(/Offer them as options rather than interrogating/);
     });
 
-    it('--brief-only stops after discovery and writes a usable artifact', () => {
+    it('--brief-only stops once the brief is established', () => {
       expect(cmd).toMatch(/`--brief-only`/);
-      expect(cmd).toMatch(/The brief is a legitimate standalone artifact/);
+      expect(cmd).toMatch(/\*\*If `--brief-only`:\*\* stop here/);
     });
   });
 
@@ -194,8 +196,110 @@ describe('PRD authoring pipeline', () => {
       expect(pm).toMatch(/\*\*Provenance:\*\*/);
       expect(pm).toMatch(/#### FR-\[ID\]: \[Requirement Title\] `\[S\]`/);
       expect(pm).toMatch(/\*\*Source:\*\*/);
-      expect(pm).toMatch(/## 9\. Source Map/);
-      expect(pm).toMatch(/## 8\. Open Questions/);
+      expect(pm).toMatch(/## 5\. Source Map/);
+      expect(pm).toMatch(/## 4\. Open Questions/);
+      expect(pm).toMatch(/\*\*Brief:\*\*/);
+    });
+  });
+
+  describe('The brief is the epic body', () => {
+    it('contract makes brief epic-scoped and resolving to the page itself', () => {
+      const contract = read('agents/_shared/document-store-contract.md');
+      expect(contract).toMatch(/^### The brief is the epic's own body$/m);
+      expect(contract).toMatch(/resolves to the epic page \*\*itself\*\*/);
+      expect(contract).toMatch(/`notion\.targets\.brief` is meaningless/);
+    });
+
+    it('is a patch target, never a write target', () => {
+      // A whole-page write would discard body content Synthex did not author.
+      const contract = read('agents/_shared/document-store-contract.md');
+      expect(contract).toMatch(/It is a `patch` target, never a `write` target/);
+      expect(cmd).toMatch(/always written with `patch`, never `write`/);
+    });
+
+    it('document store records the exception in its title table', () => {
+      const ds = read('agents/notion-document-store.md');
+      expect(ds).toMatch(/`brief` resolves to the epic page \*\*itself\*\*/);
+      expect(ds).toMatch(/\| \*\*Epic-scoped\*\* \| `brief`,/);
+    });
+
+    it('config documents the epic-body mapping', () => {
+      expect(cfgText).toMatch(/this is the epic's OWN BODY rather than a\s*#?\s*file/);
+      expect(cfg.documents.brief).toBe('docs/reqs/brief.md');
+    });
+  });
+
+  describe('Existing content is refined, never discarded', () => {
+    it('treats a populated body as input rather than an obstacle', () => {
+      expect(pm).toMatch(/^### Refining a populated body$/m);
+      expect(pm).toMatch(/it is \*\*input, not an obstacle\.\*\*/);
+      expect(cmd).toMatch(/The existing content is input, not an obstacle/);
+    });
+
+    it('maps visibly, then asks about gaps and leftovers', () => {
+      for (const text of [pm, cmd]) {
+        expect(text).toMatch(/\*\*Map\*\*/);
+        expect(text).toMatch(/Ask about gaps/);
+        expect(text).toMatch(/Ask about leftovers/);
+      }
+      expect(pm).toMatch(/Mapping is a claim about their writing/);
+    });
+
+    it('forbids silently dropping existing content', () => {
+      // The failure mode of any standardization pass.
+      for (const text of [pm, cmd]) {
+        expect(text).toMatch(/Never silently drop existing content/);
+      }
+      expect(pm).toMatch(/Additional context/);
+      expect(pm).toMatch(/not a recoverable mistake/);
+    });
+
+    it('checks for loss rather than assuming none, via prior_content', () => {
+      expect(cmd).toMatch(/Pass the original content to the linter as `prior_content`/);
+      expect(linter).toMatch(/prior_content/);
+      expect(linter).toMatch(/or is listed as raised with the user \| \*\*CRITICAL\*\*/);
+    });
+
+    it('says so rather than implying a pass when prior content is absent', () => {
+      expect(linter).toMatch(/skip this check and say so in your report rather than implying it passed/);
+    });
+
+    it('requires approval before writing back', () => {
+      for (const text of [pm, cmd]) {
+        expect(text).toMatch(/get approval\*{0,2} before writing/);
+      }
+    });
+  });
+
+  describe('PRD no longer duplicates the brief', () => {
+    it('template opens with a Brief link instead of restating it', () => {
+      expect(pm).toMatch(/\*\*Brief:\*\* \[link to the epic/);
+      expect(pm).toMatch(/It does \*not\* restate the vision, the users, the scope boundary, or the success metrics/);
+    });
+
+    it('template has no vision/users/scope/metrics sections', () => {
+      const tmpl = pm.split('## PRD Structure (Default Template)')[1]?.split('```\n\n**A PRD')[0] ?? '';
+      for (const gone of ['Vision & Purpose', 'Target Users', 'Out of Scope', 'Success Metrics']) {
+        expect(tmpl, `PRD template still contains ${gone}`).not.toContain(gone);
+      }
+    });
+
+    it('accepts the cost of not being self-contained, explicitly', () => {
+      expect(pm).toMatch(/\*\*A PRD is not readable alone, by design\.\*\*/);
+      expect(pm).toMatch(/nothing is duplicated, so nothing can drift/);
+    });
+
+    it('linter flags a PRD that reintroduces those sections', () => {
+      expect(linter).toMatch(/No Vision \/ Users \/ Out of Scope \/ Success Metrics section/);
+    });
+
+    it('linter requires the Brief reference', () => {
+      expect(linter).toMatch(/`\*\*Brief:\*\*` reference present/);
+      expect(linter).toMatch(/deliberately not self-contained/);
+    });
+
+    it('command tells the PM not to re-ask what the brief settled', () => {
+      expect(cmd).toMatch(/Do \*\*not\*\* re-ask what the brief already answers/);
     });
   });
 
@@ -230,7 +334,7 @@ describe('PRD authoring pipeline', () => {
     });
 
     it('requires Out of Scope to be non-empty', () => {
-      expect(linter).toMatch(/`## 5\. Out of Scope` present and \*\*non-empty\*\*/);
+      expect(linter).toMatch(/`## Out of scope` present and \*\*non-empty\*\*/);
     });
 
     it('leads its report with the provenance summary', () => {
@@ -253,7 +357,7 @@ describe('PRD authoring pipeline', () => {
 
   describe('Reuses the existing quality pipeline', () => {
     it('lints before expensive reviewers, with the reason stated', () => {
-      expect(cmd).toMatch(/^### 8\. Lint$/m);
+      expect(cmd).toMatch(/^### 8\. Lint the PRD$/m);
       expect(linter).toMatch(/cheap enough to run before the expensive reviewers/);
     });
 
