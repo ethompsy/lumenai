@@ -38,7 +38,11 @@ The first plugin in the marketplace. **Synthex** models a software startup's org
 /plugin install synthex
 ```
 
-The organization spans the full software lifecycle: **discover, build, ship, operate, and learn** — with 15 agents organized into three layers and 11 commands that orchestrate them.
+The organization spans the full software lifecycle: **discover, build, ship, operate, and learn** — with 31 agents organized into four layers and 20 commands that orchestrate them.
+
+The tables below cover the core set. For the complete current roster, including the Haiku-backed utility agents and the multi-model, looping, and Notion-backend commands, see [`CLAUDE.md`](./CLAUDE.md).
+
+**Typical order when starting new work:** `init` → `write-prd` → `refine-requirements` → `write-implementation-plan` → `next-priority` → `review-code` → `retrospective`.
 
 #### Agents (15)
 
@@ -77,6 +81,7 @@ The organization spans the full software lifecycle: **discover, build, ship, ope
 | Command | Purpose | Agents Orchestrated |
 |---------|---------|-------------------|
 | **init** | Initialize project configuration and directories | -- |
+| **write-prd** | Author a PRD from supplied sources plus an interview, with provenance on every requirement | PM + PRD Linter |
 | **next-priority** | Execute next highest-priority tasks | Tech Lead |
 | **refine-requirements** | Improve PRD clarity through multi-agent review | PM + Tech Lead + Lead Frontend Engineer |
 | **write-implementation-plan** | Transform PRD into implementation plan | PM + Architect + Design System Agent + Tech Lead |

@@ -18,7 +18,8 @@ Assemble a single, deterministic context bundle that is **identical for every pr
 
 ## When You Are Invoked
 
-- **By `multi-model-review-orchestrator`** (Task 19) — once per review invocation, before fan-out to proposers.
+- **By `multi-model-review-orchestrator`** (Task 19) — once per review invocation, before fan-out to proposers. Supplies `artifact_path`; never `sources`.
+- **By `/synthex:write-prd`** — once per invocation, to ingest the discovered and user-supplied source material a PRD is grounded in. Supplies `sources`; never `artifact_path`.
 
 You are never user-facing.
 
@@ -30,7 +31,11 @@ You receive a single object:
 
 ```
 {
-  artifact_path:      string  (required) — the diff or plan being reviewed
+  artifact_path:      string  (required unless `sources` is supplied) — the diff or
+                                        plan being reviewed
+  sources:            array   (optional) — arbitrary source documents to ingest, for
+                                        callers assembling from a document set rather
+                                        than around a single artifact under review
   touched_files:      array   (optional) — paths the artifact touches; the assembler reads these
   conventions:        array   (optional) — paths to project convention files (CLAUDE.md, .eslintrc, .prettierrc, etc.)
   spec_paths:         array   (optional) — paths or globs to specification directories
@@ -47,9 +52,23 @@ You receive a single object:
 
 ### Step 1 — Read the Artifact (FR-MR28)
 
+**Skip this step entirely when the caller supplied `sources` instead of `artifact_path`** — see Step 1b. The two modes are mutually exclusive: a caller either has one artifact under review, or a set of documents to ingest. Exactly one of the two fields must be present; both or neither is a caller error.
+
 Read `artifact_path`. The artifact is the thing under review (a diff, a draft plan, a code file). Record its size in bytes.
 
 **Critical rule:** the artifact is NEVER summarized. If the artifact alone exceeds `max_bundle_bytes`, do NOT attempt to summarize it. Instead, return the "narrow scope" error path (Step 6).
+
+### Step 1b — Read Sources (source-set mode)
+
+Only when `sources` was supplied.
+
+Each entry may be a file path, a glob, a directory, or a URL. Expand globs and directories; fetch URLs. Read each resolved document and record its size.
+
+Unlike an artifact, **sources may be summarized** — there is no single indispensable document, and a caller assembling from a document set expects the total cap to be honored by trimming the largest inputs rather than by failing. Apply `max_file_bytes` per document, then the total cap per Step 5.
+
+**Record every source's outcome**, including failures. A source that could not be read must appear in the manifest with the reason, not be silently dropped: the caller may be about to claim the result is grounded in that document.
+
+Order the bundle by the order the caller supplied, so the result is deterministic across runs.
 
 ### Step 2 — Read Conventions
 
@@ -123,6 +142,11 @@ The orchestrator surfaces this to the caller. **Do not summarize the artifact** 
     "specs": [
       { "path": "docs/specs/auth.md", "size_bytes": 2341, "summarized": false }
     ],
+    "sources": [
+      { "path": "notes/kickoff.md", "size_bytes": 8120, "summarized": false, "status": "read" },
+      { "path": "research/interviews.md", "size_bytes": 91204, "summarized": true, "status": "read" },
+      { "path": "https://example.com/spec", "size_bytes": 0, "summarized": false, "status": "unreadable", "reason": "404" }
+    ],
     "total_bytes": 100437
   },
   "files": [
@@ -157,6 +181,8 @@ The orchestrator surfaces this to the caller. **Do not summarize the artifact** 
 
 ---
 
+- **Never silently drop a source.** A document the caller supplied and you could not read belongs in the manifest with its reason. The caller may be about to assert that its output is grounded in that document, and only the manifest can contradict that.
+- **Never summarize in artifact mode; always be willing to in source-set mode.** The artifact is the thing under review and must arrive whole. Sources are a corpus, and trimming the largest is preferable to failing.
 ## Scope Constraints
 
 This agent does NOT:

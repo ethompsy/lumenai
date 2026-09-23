@@ -80,6 +80,8 @@ When creating a PRD, use this structure. Adapt sections as needed based on the p
 ```markdown
 # Product Requirements Document: [Product Name]
 
+**Provenance:** `[S]` sourced · `[U]` user-stated · `[D]` derived from the codebase · `[A]` assumed
+
 ## 1. Vision & Purpose
 [Why this product exists, what problem it solves, strategic importance]
 
@@ -89,13 +91,14 @@ When creating a PRD, use this structure. Adapt sections as needed based on the p
 ## 3. Functional Requirements
 [Features organized by theme/initiative, with acceptance criteria]
 ### Theme: [Name]
-#### FR-[ID]: [Requirement Title]
+#### FR-[ID]: [Requirement Title] `[S]`
 [Description]
+**Source:** [document and location, an interview answer, or what it was derived from]
 **Acceptance Criteria:**
 - [Specific, testable criteria]
 
 ## 4. Non-Functional Requirements
-[Performance targets, security requirements, accessibility standards, scalability needs]
+[Performance targets, security requirements, accessibility standards, scalability needs — each tagged]
 
 ## 5. Out of Scope
 [Explicitly what we are NOT building in this version]
@@ -105,7 +108,70 @@ When creating a PRD, use this structure. Adapt sections as needed based on the p
 
 ## 7. Assumptions & Constraints
 [What we're assuming, what limits us]
+
+## 8. Open Questions
+[Anything unresolved. A question belongs here rather than being answered by invention.]
+
+## 9. Source Map
+| Document | Contributed |
+|----------|-------------|
+| [path or URL] | [which requirements or sections came from it] |
 ```
+
+---
+
+## Provenance Tagging
+
+Every functional and non-functional requirement carries a tag recording where it came from:
+
+| Tag | Meaning | Source line |
+|-----|---------|-------------|
+| `[S]` | **Sourced** — traceable to a document supplied at execution time | Required: the document and its location |
+| `[U]` | **User-stated** — came from an answer you received in the interview | Required: what was asked |
+| `[D]` | **Derived** — read off the codebase (`package.json`, `CLAUDE.md`, existing specs) | Required: what it was read from |
+| `[A]` | **Assumed** — your inference, not yet confirmed | Required: the reasoning |
+
+This exists so that fabrication is **visible and countable**. A PRD that is mostly `[A]` is self-evidently unearned, and a reader can see that at a glance rather than discovering it during implementation.
+
+Three rules follow, and they are not negotiable:
+
+1. **No `[A]` survives into a final PRD.** Each must be confirmed with the user (becoming `[U]`), grounded in a source (`[S]`/`[D]`), or demoted to an Open Question. The `prd-linter` raises an unconfirmed `[A]` as CRITICAL.
+2. **Never invent an answer.** When something is unknown and the user cannot or will not settle it now, it goes in Open Questions. This is the same rule Plan Scribe follows for plans: flag it rather than make it up.
+3. **Never silently reconcile contradicting sources.** When two supplied documents disagree, present both positions with their citations and ask. Silently picking one is the most damaging thing you can do here, because it looks like a decision was made.
+
+A `[S]` tag without a usable citation is not a `[S]` tag. "From the meeting notes" is not a citation; the file and the section is.
+
+---
+
+## Discovery Before Specification
+
+A PRD that starts at requirements becomes a feature list. Establish four things first, and do not draft requirements until you have them:
+
+| | Question |
+|---|---|
+| **Vision** | What problem does this solve, and why is it worth solving now? |
+| **Users** | Who specifically is this for, and what do they do today instead? |
+| **Value** | What changes for them if this works? |
+| **Scope boundary** | What is explicitly *not* in this version? |
+
+The scope boundary is the one most often skipped and the one that pays off most — it populates Out of Scope, and a PRD without it invites unbounded implementation.
+
+**If you cannot establish vision, users, and at least one scope boundary, stop.** Report what is missing rather than drafting. With no supplied sources and no answers, there is nothing to write a PRD *from*, and producing one anyway is exactly the failure this process exists to prevent.
+
+### Deepening techniques
+
+When an answer is thin, these draw out more than a follow-up question would. Offer them as options rather than interrogating:
+
+- **Pre-mortem** — "It is six months after launch and this failed. What happened?" Surfaces non-functional requirements and risks that direct questions miss.
+- **Negative space** — "What are we explicitly *not* doing?" Populates Out of Scope.
+- **Socratic on each must-have** — "Why must this be in v1?" Enforces MVP discipline against a wish list.
+- **Inversion** — "What would guarantee this fails?" Finds constraints and scope boundaries.
+
+Use them selectively. The goal is a shorter interview that yields more, not a longer one.
+
+### When sources are supplied
+
+Supplied documents change *what the interview is about*; they do not replace it. With good sources you arrive holding a grounded draft and interview only about gaps, contradictions, and unstated assumptions. With none, you must elicit everything — and the interview is correspondingly longer, which you should say plainly at the outset rather than letting it be a surprise.
 
 ---
 

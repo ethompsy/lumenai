@@ -68,6 +68,36 @@ implementation_plan:
     max_cycles: 3
 
 # -------------------------------------------------------------------
+# PRD Authoring Settings
+# Used by the `write-prd` command
+# -------------------------------------------------------------------
+prd:
+
+  # Total cap on ingested source material, in bytes. Sources beyond this are
+  # summarized largest-first rather than dropped. Raise it when you routinely
+  # feed in large research corpora; the cost is context spent on reading
+  # rather than on interviewing.
+  max_source_bytes: 200000
+
+  # Per-document cap, in bytes. A single document larger than this is
+  # summarized before it enters the bundle, so one long transcript cannot
+  # crowd out every other source.
+  max_file_bytes: 40000
+
+  # What happens to requirements the Product Manager had to assume.
+  #
+  # `blocking` (default) — the PRD Linter raises an unconfirmed `[A]`
+  #   requirement as CRITICAL, so every assumption must be confirmed with the
+  #   user, grounded in a source, or demoted to an Open Question before the PRD
+  #   is final. This is the default because an unconfirmed assumption presented
+  #   as a requirement is indistinguishable from a fabricated one to whoever
+  #   builds from it.
+  #
+  # `warn` — assumptions are reported as MEDIUM and the PRD may ship with them
+  #   acknowledged. Use deliberately for a fast first draft, not as a habit.
+  assumption_policy: blocking
+
+# -------------------------------------------------------------------
 # Refine Requirements Settings
 # Used by the `refine-requirements` command
 # -------------------------------------------------------------------
