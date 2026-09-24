@@ -155,6 +155,28 @@ So the epic body holds only what stops changing once an initiative is defined:
 
 If you find yourself wanting to put progress in the epic, that is what the block is for, and `next-priority` already keeps it current.
 
+## 4b. Regenerating an epic on an existing project
+
+Your PRD and plan already exist, and the epic body is either free-form or has drifted. Two situations, two answers.
+
+**Standardize or re-derive the brief:**
+
+```
+/synthex:write-prd --brief-only
+```
+
+This skips the PRD entirely — it is not that run's concern. Synthex reads the epic body, maps what is there onto the standard sections, shows you what landed where, asks about gaps and leftovers, and writes back with a section-scoped patch once you approve. Nothing already in the body is discarded; anything that fits no section is raised with you or preserved under `Additional context`.
+
+The same option appears inside a normal `/synthex:write-prd` run as **"Refresh the epic brief,"** so you do not have to remember the flag.
+
+**Refresh just the freshness numbers:** nothing to run. `/synthex:next-priority` rewrites the `Where the detail lives` block at the end of every run.
+
+One caveat worth knowing: `next-priority` will **not** insert that block into an epic body that is not already in standard brief shape. It reports this instead —
+
+> `This epic's body isn't in standard brief shape, so there's no navigation block to refresh. Run /synthex:write-prd --brief-only to standardize it.`
+
+— because restructuring your page is a decision that belongs where you are present to approve the mapping, not to a task-execution run.
+
 ## 5. Property mapping
 
 Synthex maps its fields onto your database's existing property names. It does not rename your columns or impose its own.

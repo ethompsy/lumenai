@@ -31,20 +31,30 @@ The design commitment: **source documents change what the interview is about; th
 
 ## Workflow
 
-### 1. Check for an Existing PRD
+### 1. Decide What This Run Is Doing
 
-Read `@{requirements_path}`.
+Resolve the `brief` document type (under `notion`, the epic's own body) and read `@{requirements_path}`.
 
-- **Absent:** proceed to Step 2.
-- **Present:** do **not** overwrite it. Ask via `AskUserQuestion`:
+**If `--brief-only` is set, skip the PRD entirely** — it is not this run's concern. Go to Step 2, then Step 5, then stop. This is the path for standardizing or refreshing an epic on a project whose PRD and plan already exist.
 
-  > **A PRD already exists at `<path>`.**
-  >
-  > 1. **Refine it** — hand straight to `/synthex:refine-requirements`, which reviews and improves an existing PRD.
-  > 2. **Write a sub-PRD** — a separate initiative at `docs/reqs/<initiative-name>.md`, which may or may not tie back to the main PRD.
-  > 3. **Replace it** — discard the existing PRD and author a new one. Requires explicit confirmation.
+Otherwise branch on what exists:
 
-Option 3 is destructive and the confirmation must name the file. Never take it as a default.
+| Brief | PRD | Action |
+|-------|-----|--------|
+| absent | absent | Full run — establish the brief (Step 5), then the PRD |
+| present | absent | Confirm the brief still holds, then the PRD |
+| either | **present** | Ask, below |
+
+When a PRD already exists, do **not** overwrite it. Ask via `AskUserQuestion`:
+
+> **This project already has a PRD.**
+>
+> 1. **Refresh the epic brief** — re-read the epic body and bring it back into standard shape, including its `Where the detail lives` block. Leaves the PRD alone. Use this when the epic has drifted or was never standardized.
+> 2. **Refine the PRD** — hand to `/synthex:refine-requirements`, which reviews and improves an existing PRD.
+> 3. **Write a sub-PRD** — a separate initiative at `docs/reqs/<initiative-name>.md`, which may or may not tie back to the main PRD.
+> 4. **Replace the PRD** — discard it and author a new one. Requires explicit confirmation.
+
+Option 1 is equivalent to `--brief-only` and exists here so the capability is discoverable from the command you would naturally reach for. Option 4 is destructive and its confirmation must name the file; never take it as a default.
 
 ### 2. Load Configuration
 

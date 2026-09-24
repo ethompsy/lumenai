@@ -64,6 +64,12 @@ This command reads the implementation plan's task queue and writes task state ba
 
   Use `patch`, never `write`: the rest of the body is the team's.
 
+  **When the section does not exist**, which is the case for any epic that has not been through `/synthex:write-prd`, do not inject it. Insert it only when the body is already in standard brief shape — directly after `## Problem`. Otherwise report once and move on:
+
+  > `This epic's body isn't in standard brief shape, so there's no navigation block to refresh. Run /synthex:write-prd --brief-only to standardize it.`
+
+  Restructuring a free-form epic body is a decision for `write-prd`, where the user is present to approve the mapping. Silently reshaping someone's page mid-run is exactly the failure the refine-don't-discard rule exists to prevent, and a task-execution command is the wrong place to make that call.
+
 ## Workflow
 
 ### 1. Analyze the Implementation Plan

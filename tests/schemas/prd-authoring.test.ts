@@ -514,15 +514,65 @@ describe('PRD authoring pipeline', () => {
   });
 
   describe('Does not clobber an existing PRD', () => {
-    it('checks first and offers refine / sub-PRD / replace', () => {
-      expect(cmd).toMatch(/^### 1\. Check for an Existing PRD$/m);
+    it('decides what the run is doing before touching anything', () => {
+      expect(cmd).toMatch(/^### 1\. Decide What This Run Is Doing$/m);
       expect(cmd).toMatch(/do \*\*not\*\* overwrite it/);
       expect(cmd).toMatch(/Write a sub-PRD/);
     });
 
     it('requires named confirmation for the destructive option', () => {
-      expect(cmd).toMatch(/destructive and the confirmation must name the file/);
-      expect(cmd).toMatch(/Never take it as a default/);
+      expect(cmd).toMatch(/destructive and its confirmation must name the file/);
+      expect(cmd).toMatch(/never take it as a default/i);
+    });
+
+    it('branches on what actually exists rather than on the PRD alone', () => {
+      const step = cmd.split('### 1. Decide What This Run Is Doing')[1]?.split('### 2.')[0] ?? '';
+      expect(step).toMatch(/\| Brief \| PRD \| Action \|/);
+      expect(step).toMatch(/absent \| absent/);
+    });
+  });
+
+  describe('Regenerating the epic on an established project', () => {
+    // The question this closes: a project whose PRD and plan already exist,
+    // whose epic body has drifted or was never standardized.
+    let np: string;
+    beforeAll(() => {
+      np = read('commands/next-priority.md');
+    });
+
+    it('--brief-only bypasses the PRD gate entirely', () => {
+      // Previously Step 1 ran unconditionally, so asking for just the brief
+      // prompted about the PRD, and none of the options was "just the brief".
+      expect(cmd).toMatch(/If `--brief-only` is set, skip the PRD entirely/);
+      expect(cmd).toMatch(/it is not this run's concern/);
+    });
+
+    it('names the established-project case explicitly', () => {
+      expect(cmd).toMatch(
+        /standardizing or refreshing an epic on a project whose PRD and plan already exist/,
+      );
+    });
+
+    it('surfaces the refresh option where a user would look for it', () => {
+      expect(cmd).toMatch(/\*\*Refresh the epic brief\*\*/);
+      expect(cmd).toMatch(/Leaves the PRD alone/);
+      expect(cmd).toMatch(/discoverable from the command you would naturally reach for/);
+    });
+
+    it('next-priority does not inject a block into a free-form body', () => {
+      expect(np).toMatch(/\*\*When the section does not exist\*\*/);
+      expect(np).toMatch(/do not inject it/);
+      expect(np).toMatch(/Run \/synthex:write-prd --brief-only to standardize it/);
+    });
+
+    it('explains why restructuring belongs to write-prd, not to a task run', () => {
+      expect(np).toMatch(/where the user is present to approve the mapping/);
+      expect(np).toMatch(/a task-execution command is the wrong place to make that call/);
+    });
+
+    it('inserts the block only into an already-standard body', () => {
+      expect(np).toMatch(/Insert it only when the body is already in standard brief shape/);
+      expect(np).toMatch(/directly after `## Problem`/);
     });
   });
 
