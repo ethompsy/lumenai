@@ -68,7 +68,7 @@ Document types divide by scope, and the two halves resolve against different anc
 
 | Scope | Document types | Anchor |
 |-------|---------------|--------|
-| **Epic-scoped** | `brief`, `requirements`, `implementation_plan`, `retros` | `config.epic_page` — the initiative's own page |
+| **Epic-scoped** | `epic_page`, `requirements`, `implementation_plan`, `retros` | `config.epic_page` — the initiative's own page |
 | **Cross-cutting** | `specs`, `decisions`, `rfcs`, `runbooks` | `config.docs_root` |
 
 Every row of a Notion database is itself a page and can hold subpages, so when a epic is a row in an epics database, that row anchors its own initiative's documents. The PRD, plan, and retrospectives become subpages of it, and the work items relate to it — one entry point for the whole initiative.
@@ -87,7 +87,7 @@ Conventional titles for epic-scoped types:
 | `requirements` | `Product Requirements` |
 | `implementation_plan` | `Implementation Plan` |
 | `retros` | `Retrospective <YYYY-MM-DD>` — dated, since retrospectives accumulate; `list` returns them newest first |
-| `brief` | *(none)* — `brief` resolves to the epic page **itself**, not a subpage of it. It is the initiative's own body. Treat `config.targets.brief` as meaningless and ignore it if present. Write it only with a section-scoped `patch`: the body holds content Synthex did not author, and a full `write` would discard it. |
+| `epic_page` | *(none)* — resolves to the epic page **itself**, not a subpage of it. Treat `config.targets.epic_page` as meaningless and ignore it if present. Write it only with a section-scoped `patch`: the body holds content Synthex did not author, and a full `write` would discard it. This doc type exists only under the `notion` backend; a repository has no landing page, so it has nothing to hold. |
 
 If resolution yields nothing, return `error_code: target_not_found` with an `error_message` naming the `doc_type` and pointing at `/synthex:configure-notion`. Do **not** create a page as a side effect of a `read` — creation is only ever the `create` operation.
 

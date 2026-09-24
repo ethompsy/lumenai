@@ -15,18 +15,18 @@
 
 Synthex's documents and implementation-plan tasks appear in Notion instead of only as markdown in your repository:
 
-- The **epic's own body becomes a standardized brief** — why this exists, who it's for, what changes, what's out of scope, how you'll know it worked. If your epic already has content, Synthex reads it and refines it into that shape *with you*; it never discards what's there.
-- The brief carries a **`Where the detail lives`** block near the top: links to the requirements, the plan, and the work items, each with a current-state line, plus a blunt note that the page is a summary rather than the plan. Synthex refreshes it at the end of every `next-priority` run.
+- The **epic's own body becomes a standardized summary** — why this exists, how you'll know it worked, and what's out of scope. If your epic already has content, Synthex reads it and refines it into that shape *with you*; it never discards what's there.
+- The epic page carries a **`Where the detail lives`** block near the top: links to the requirements, the plan, and the work items, each with a current-state line, plus a blunt note that the page is a summary rather than the plan. Synthex refreshes it at the end of every `next-priority` run.
 - An initiative's **requirements, plan, and retrospectives become subpages of its epic**, so anyone opening the epic finds them.
 - **Plan tasks become rows in your work database**, linked to that epic, with status updated as work completes.
 
 ```
 Epics DB
   ▸ Billing Migration              ← the epic you already have
-      │  body = the Brief          ← refined into a standard format, with you
-      │    Problem
+      │  body = why + navigation   ← refined into a standard format, with you
+      │    Why this exists
       │    Where the detail lives  ← links + freshness, kept current by Synthex
-      │    Who it's for / Out of scope / How we'll know
+      │    How we'll know / Out of scope
       ├─ Product Requirements      ← Synthex adds these
       ├─ Implementation Plan
       └─ Retrospective 2026-09-22
@@ -159,21 +159,21 @@ If you find yourself wanting to put progress in the epic, that is what the block
 
 Your PRD and plan already exist, and the epic body is either free-form or has drifted. Two situations, two answers.
 
-**Standardize or re-derive the brief:**
+**Standardize or re-derive the epic page:**
 
 ```
-/synthex:write-prd --brief-only
+/synthex:write-prd --epic-only
 ```
 
 This skips the PRD entirely — it is not that run's concern. Synthex reads the epic body, maps what is there onto the standard sections, shows you what landed where, asks about gaps and leftovers, and writes back with a section-scoped patch once you approve. Nothing already in the body is discarded; anything that fits no section is raised with you or preserved under `Additional context`.
 
-The same option appears inside a normal `/synthex:write-prd` run as **"Refresh the epic brief,"** so you do not have to remember the flag.
+The same option appears inside a normal `/synthex:write-prd` run as **"Refresh the epic page,"** so you do not have to remember the flag.
 
 **Refresh just the freshness numbers:** nothing to run. `/synthex:next-priority` rewrites the `Where the detail lives` block at the end of every run.
 
-One caveat worth knowing: `next-priority` will **not** insert that block into an epic body that is not already in standard brief shape. It reports this instead —
+One caveat worth knowing: `next-priority` will **not** insert that block into an epic body that is not already in standard epic-page shape. It reports this instead —
 
-> `This epic's body isn't in standard brief shape, so there's no navigation block to refresh. Run /synthex:write-prd --brief-only to standardize it.`
+> `This epic's body isn't in standard epic-page shape, so there's no navigation block to refresh. Run /synthex:write-prd --epic-only to standardize it.`
 
 — because restructuring your page is a decision that belongs where you are present to approve the mapping, not to a task-execution run.
 
@@ -225,7 +225,7 @@ Document types divide by whether they belong to one initiative or outlive them a
 
 | Epic-scoped — belong to one initiative | Cross-cutting — no epic to hang from |
 |---|---|
-| The brief — *the epic's body itself* | Technical specs |
+| The epic page — *the row's body itself* | Technical specs |
 | Product requirements | Architecture decisions (ADRs) |
 | Implementation plan | RFCs |
 | Retrospectives | Runbooks |

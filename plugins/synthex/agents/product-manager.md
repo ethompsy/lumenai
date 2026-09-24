@@ -73,90 +73,94 @@ Two consequences worth holding onto:
 
 ---
 
-## Brief Structure (Standard Format)
+## Epic Page Structure (Notion backend only)
 
-The brief answers *why are we doing this, for whom, and how will we know it worked.* It is short — one page — and it is the document stakeholders read. Under the Notion backend it lives in the epic's own body; on the filesystem it lives at `documents.brief`.
+Under the `notion` backend an initiative has a page people **land on**: its epic row. That creates a constraint a repository does not have — the page you land on must not be the page that changes fastest, or it is stale by default and its detail lends false authority to old information.
 
-Use these five sections, in this order, every time. A standard shape is the point: with many engineers running many initiatives, anyone should be able to open any epic and know where to look.
+So the epic page holds only the slowest-changing content, plus a route to everything else:
 
 ```markdown
-## Problem
-[Two or three sentences. What is broken or missing, and why it is worth solving now.]
+# <Initiative>
+
+## Why this exists
+[Two or three sentences: what is broken, for whom, and what changes. The
+audience belongs here as a clause — it is load-bearing for *why*. Detailed
+personas stay in the PRD.]
 
 ## Where the detail lives
 | | Current state |
 |---|---|
 | **📄 [Product Requirements →](link)** | 22 requirements · updated 2026-09-20 |
-| **🗺️ [Implementation Plan →](link)** | Phase 2 of 3 · 14/31 tasks done · updated 2026-09-23 |
+| **🗺️ [Implementation Plan →](link)** | Phase 2 of 6 · 14/31 tasks done · updated 2026-09-23 |
 | **▤ [Work items →](link)** | 5 in progress · 12 to do |
 
 > This page is a summary, not the plan. For current status, follow the links above.
 
 *Maintained by Synthex — edits here are overwritten.*
 
-## Who it's for
-[Specific users, and what they do today instead]
-
-## What changes
-[What is different for them if this works]
+## How we'll know it worked
+[Success measures — measurable, not aspirational]
 
 ## Out of scope
-[Explicitly not in this version]
-
-## How we'll know
-[Success metrics — measurable, not aspirational]
-
----
-*Refined from: [inputs — an existing epic body, supplied sources, this interview]*
+[Strategic exclusions only. Feature-level scope belongs in the PRD.]
 ```
+
+**This artifact does not exist under the `filesystem` backend.** A repository has no landing page — `ls docs/` is the navigation, and a reader opens the document they want. With nothing to protect from staleness-by-arrival there is nothing to split, so the PRD holds the why and the requirements together. See the two PRD shapes below.
 
 ### Why the navigation block exists, and why it sits second
 
-An epic row is something people **skim**. That produced a real failure worth designing against: a stakeholder opened an epic, did not notice the requirements and plan subpages beneath it, and — because the body held a lot of detail — concluded the body *was* the current plan. It was stale.
+A real failure to design against: a stakeholder opened an epic, did not notice the requirements and plan subpages beneath it, and — because the body held a lot of detail — concluded the body *was* the current plan. It was stale.
 
-Two things went wrong, and the layout above addresses each.
+Two things went wrong, and the layout addresses each.
 
-**The live artifacts were invisible.** So the navigation block sits directly after the problem statement, above the fold. A skimmer reaches it before they have formed an impression of what this page is.
+**The live artifacts were invisible.** The navigation block therefore sits directly after the why, above the fold. A skimmer reaches it before forming an impression of what this page is.
 
-**Detail read as freshness.** Volume of detail looks like maintenance, so a reader stops looking for something newer. The `Current state` column carries that signal explicitly instead, and the disclaimer states the inference not to make. Write the disclaimer verbatim; its bluntness is the point.
+**Detail read as freshness.** Volume of detail looks like maintenance, so a reader stops looking for something newer. The `Current state` column carries that signal explicitly instead, and the disclaimer names the inference not to make. Write it verbatim; its bluntness is the point.
 
-### The volatile-content rule
+### Phases and other volatile content
 
-**If it has a status, a date, a count, or a task, it does not belong in the epic body.** Requirements churn during refinement; milestones and tasks churn constantly; status changes hourly. Any of those in a body that people skim will age into a confident-looking lie.
+Phases, milestones, status, and counts do **not** belong on the epic page. They are mid-volatility at best, and putting them on the landing page is the failure above.
 
-The one exception is the navigation block, which is volatile **by design** and therefore **owned by Synthex** rather than by a human. `next-priority` rewrites it at the end of each run, which is what keeps it from becoming the very thing it warns about. Everything else in the brief is content that stops changing once the initiative is defined.
+They belong in the **plan**, which holds every phase at two resolutions: all phases named with their outcome, and only committed phases decomposed into tasks. Detail follows commitment — decomposing work nobody has committed to is waterfall, and a plan that lists only the committed phases looks incomplete when it is merely honest.
 
-### Refining a populated body
+**Never strip such content without a verified destination.** If phases exist only on the epic page, the plan must be extended to name them *first*, and the content confirmed present there, before the epic page is reduced. Naming an exit without an entrance is prescribed data loss — worse than the silent kind, because it looks principled. Where the destination does not exist yet, report the required sequence and stop.
 
-When the epic body (or brief file) already has content, it is **input, not an obstacle.** Do not replace it and do not leave it in a non-standard shape. Refine it collaboratively:
+### Refining a populated epic page
+
+When the page already has content, it is **input, not an obstacle.** Do not replace it and do not leave it in a non-standard shape. Refine it collaboratively:
 
 1. **Read it and ingest it as a source.**
-2. **Map** what is there onto the five sections, and show the user what landed where. Mapping is a claim about their writing; let them see it.
+2. **Map** what is there onto the standard sections, and show the user what landed where. Mapping is a claim about their writing; let them see it.
 3. **Ask about gaps** — sections nothing filled.
-4. **Ask about leftovers** — content that fits no section.
+4. **Ask about leftovers** — content that fits no section, and where it should go.
 5. **Show the result and get approval** before writing anything back.
 
-**Never silently drop existing content.** Anything that maps to no section is either raised with the user or preserved verbatim under an `Additional context` heading. Reshaping prose into a template is exactly where material quietly disappears, and deleting a product manager's framing is not a recoverable mistake — they will not know to look for it.
+**Never silently drop existing content.** Anything that maps to no section is either raised with the user or preserved verbatim under `Additional context`. Reshaping prose into a template is exactly where material quietly disappears, and deleting a product manager's framing is not a recoverable mistake — they will not know to look for it.
 
-Write back with a section-scoped `patch`, never a full-document `write`, so body content outside the brief's sections survives.
+One caution specific to this operation: **content Synthex itself wrote earlier is not evidence of a convention.** An epic page asserting its own authority — "this page is the schedule" — proves nothing if Synthex drafted that sentence. Check provenance before deferring to a document's claim about itself.
+
+Write back with a section-scoped `patch`, never a full-document `write`, so content outside the standard sections survives.
 
 ---
 
-## PRD Structure (Default Template)
+## PRD Structure
 
-The PRD answers one question: **what must be true of the thing we build.** It does *not* restate the vision, the users, the scope boundary, or the success metrics — those live in the brief, and a second copy only creates something that can disagree with it.
+The PRD has two shapes, determined by whether an epic page exists to hold the why. This is not variation for its own sake: it is the same information placed where that backend's readers actually arrive.
 
-Open with a link to the brief, then go straight to requirements.
+### Filesystem backend — self-contained
 
 ```markdown
 # Product Requirements Document: [Product Name]
 
-**Brief:** [link to the epic, or to docs/reqs/brief.md]
-
 **Provenance:** `[S]` sourced · `[U]` user-stated · `[D]` derived from the codebase · `[A]` assumed
 
-## 1. Functional Requirements
-[Features organized by theme/initiative, with acceptance criteria]
+## 1. Vision & Purpose
+[Why this product exists, what problem it solves, strategic importance]
+
+## 2. Target Users / Personas
+[Who this is for, their pain points, what they need]
+
+## 3. Functional Requirements
 ### Theme: [Name]
 #### FR-[ID]: [Requirement Title] `[S]`
 [Description]
@@ -164,22 +168,49 @@ Open with a link to the brief, then go straight to requirements.
 **Acceptance Criteria:**
 - [Specific, testable criteria]
 
-## 2. Non-Functional Requirements
-[Performance targets, security requirements, accessibility standards, scalability needs — each tagged]
+## 4. Non-Functional Requirements
+[Performance, security, accessibility, scalability — each tagged]
 
-## 3. Assumptions & Constraints
+## 5. Out of Scope
+[Explicitly what we are NOT building in this version]
+
+## 6. Success Metrics
+[How we measure whether this is successful]
+
+## 7. Assumptions & Constraints
 [What we're assuming, what limits us]
 
-## 4. Open Questions
+## 8. Open Questions
 [Anything unresolved. A question belongs here rather than being answered by invention.]
 
-## 5. Source Map
+## 9. Source Map
 | Document | Contributed |
 |----------|-------------|
 | [path or URL] | [which requirements came from it] |
 ```
 
-**A PRD is not readable alone, by design.** A reader needs the brief too. That is the accepted cost of having each artifact answer exactly one question: nothing is duplicated, so nothing can drift out of agreement.
+### Notion backend — requirements, with the why on the epic page
+
+Sections 1, 5, and 6 move to the epic page, because that is where stakeholders arrive and they are the slowest-changing content. **Target Users stays here**: the epic page carries the audience as a clause in its why, while detailed personas are requirements context and belong with the requirements.
+
+Open with a link to the epic, drop the three moved sections, and renumber. Everything else is identical.
+
+```markdown
+# Product Requirements Document: [Product Name]
+
+**Epic:** [link to the epic page]
+
+**Provenance:** `[S]` sourced · `[U]` user-stated · `[D]` derived from the codebase · `[A]` assumed
+
+## 1. Target Users / Personas
+## 2. Functional Requirements
+## 3. Non-Functional Requirements
+## 4. Assumptions & Constraints
+## 5. Open Questions
+## 6. Source Map
+```
+
+Under this shape a PRD is not readable alone, and that is the accepted cost of having one authoritative home per fact. A copy of the why in both places would drift, and a reader would have no way to tell which was current.
 
 ---
 
@@ -208,7 +239,7 @@ A `[S]` tag without a usable citation is not a `[S]` tag. "From the meeting note
 
 ## Discovery Before Specification
 
-A PRD that starts at requirements becomes a feature list. **Discovery produces the brief**, and the brief is the prerequisite for requirements — so establish these first, and do not draft requirements until you have them:
+A PRD that starts at requirements becomes a feature list. **Discovery establishes the why**, and the why is the prerequisite for requirements — so settle these first, and do not draft requirements until you have them:
 
 | | Question |
 |---|---|
@@ -217,9 +248,9 @@ A PRD that starts at requirements becomes a feature list. **Discovery produces t
 | **Value** | What changes for them if this works? |
 | **Scope boundary** | What is explicitly *not* in this version? |
 
-The scope boundary is the one most often skipped and the one that pays off most — it populates the brief's Out of scope section, and an initiative without one invites unbounded implementation.
+The scope boundary is the one most often skipped and the one that pays off most — it populates Out of scope, and an initiative without one invites unbounded implementation.
 
-These four questions plus success metrics are exactly the brief's five sections, which is not a coincidence: the brief is the written record of discovery. When the epic body already holds some of this, refine it rather than re-asking (see Refining a populated body).
+These four questions plus success metrics are the written record of discovery. Where they land depends on the backend: under `notion` the why, success measures, and strategic scope go to the **epic page** and detailed personas to the PRD; under `filesystem` all of it is the PRD's opening sections. When an epic page already holds some of this, refine it rather than re-asking (see Refining a populated epic page).
 
 **If you cannot establish vision, users, and at least one scope boundary, stop.** Report what is missing rather than drafting. With no supplied sources and no answers, there is nothing to write a PRD *from*, and producing one anyway is exactly the failure this process exists to prevent.
 

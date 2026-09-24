@@ -116,16 +116,21 @@ describe('PRD authoring pipeline', () => {
   });
 
   describe('Discovery precedes specification', () => {
-    it('command establishes the brief before requirements', () => {
-      expect(cmd).toMatch(/^### 5\. Establish the Brief$/m);
+    it('command establishes the why before requirements', () => {
+      expect(cmd).toMatch(/^### 5\. Establish the Why$/m);
       expect(cmd).toMatch(/^#### 5c\. Author it through discovery$/m);
       expect(cmd).toMatch(/prerequisite for requirements/);
     });
 
-    it('establishes the five brief sections', () => {
-      for (const t of ['Problem', "Who it's for", 'What changes', 'Out of scope', "How we'll know"]) {
-        expect(pm, `brief template omits ${t}`).toContain(t);
+    it('establishes the epic page sections', () => {
+      for (const t of ['Why this exists', "How we'll know it worked", 'Out of scope']) {
+        expect(pm, `epic page template omits ${t}`).toContain(t);
       }
+    });
+
+    it('states where discovery output lands per backend', () => {
+      expect(cmd).toMatch(/\*\*Where it lands depends on the backend\.\*\*/);
+      expect(cmd).toMatch(/there is no landing page/);
     });
 
     it('has a floor that stops rather than drafting on nothing', () => {
@@ -149,9 +154,14 @@ describe('PRD authoring pipeline', () => {
       expect(pm).toMatch(/Offer them as options rather than interrogating/);
     });
 
-    it('--brief-only stops once the brief is established', () => {
-      expect(cmd).toMatch(/`--brief-only`/);
-      expect(cmd).toMatch(/\*\*If `--brief-only`:\*\* stop here/);
+    it('--epic-only stops once the epic page is established', () => {
+      expect(cmd).toMatch(/`--epic-only`/);
+      expect(cmd).toMatch(/\*\*If `--epic-only`:\*\* stop here/);
+    });
+
+    it('--epic-only reports rather than writing a file on the filesystem', () => {
+      // There is no landing page in a repo, so there is nothing for it to write.
+      expect(cmd).toMatch(/`--epic-only` is not applicable and should report as much rather than writing a file nobody opens/);
     });
   });
 
@@ -196,18 +206,31 @@ describe('PRD authoring pipeline', () => {
       expect(pm).toMatch(/\*\*Provenance:\*\*/);
       expect(pm).toMatch(/#### FR-\[ID\]: \[Requirement Title\] `\[S\]`/);
       expect(pm).toMatch(/\*\*Source:\*\*/);
-      expect(pm).toMatch(/## 5\. Source Map/);
-      expect(pm).toMatch(/## 4\. Open Questions/);
-      expect(pm).toMatch(/\*\*Brief:\*\*/);
+      expect(pm).toMatch(/## 9\. Source Map/);
+      expect(pm).toMatch(/## 8\. Open Questions/);
+      expect(pm).toMatch(/\*\*Epic:\*\*/);
     });
   });
 
-  describe('The brief is the epic body', () => {
-    it('contract makes brief epic-scoped and resolving to the page itself', () => {
+  describe('The epic page is Notion-only', () => {
+    it('contract explains the landing-page constraint as its cause', () => {
       const contract = read('agents/_shared/document-store-contract.md');
-      expect(contract).toMatch(/^### The brief is the epic's own body$/m);
-      expect(contract).toMatch(/resolves to the epic page \*\*itself\*\*/);
-      expect(contract).toMatch(/`notion\.targets\.brief` is meaningless/);
+      expect(contract).toMatch(/^### The epic page, and why it is Notion-only$/m);
+      expect(contract).toMatch(/resolves to the epic row \*\*itself\*\*/);
+      expect(contract).toMatch(/`notion\.targets\.epic_page` is meaningless/);
+      expect(contract).toMatch(/the page you land on must not be the page that changes fastest/);
+    });
+
+    it('does not exist under the filesystem backend', () => {
+      const contract = read('agents/_shared/document-store-contract.md');
+      expect(contract).toMatch(/A repository has no landing page/);
+      expect(contract).toMatch(/`epic_page` is not a valid `doc_type`/);
+    });
+
+    it('leaves no filesystem config key behind', () => {
+      // The vestigial documents.brief was a file mirroring a Notion affordance.
+      expect(cfg.documents).not.toHaveProperty('brief');
+      expect(cfg.documents).not.toHaveProperty('epic_page');
     });
 
     it('is a patch target, never a write target', () => {
@@ -219,19 +242,15 @@ describe('PRD authoring pipeline', () => {
 
     it('document store records the exception in its title table', () => {
       const ds = read('agents/notion-document-store.md');
-      expect(ds).toMatch(/`brief` resolves to the epic page \*\*itself\*\*/);
-      expect(ds).toMatch(/\| \*\*Epic-scoped\*\* \| `brief`,/);
-    });
-
-    it('config documents the epic-body mapping', () => {
-      expect(cfgText).toMatch(/this is the epic's OWN BODY rather than a\s*#?\s*file/);
-      expect(cfg.documents.brief).toBe('docs/reqs/brief.md');
+      expect(ds).toMatch(/resolves to the epic page \*\*itself\*\*, not a subpage/);
+      expect(ds).toMatch(/\| \*\*Epic-scoped\*\* \| `epic_page`,/);
+      expect(ds).toMatch(/exists only under the `notion` backend/);
     });
   });
 
   describe('Existing content is refined, never discarded', () => {
     it('treats a populated body as input rather than an obstacle', () => {
-      expect(pm).toMatch(/^### Refining a populated body$/m);
+      expect(pm).toMatch(/^### Refining a populated epic page$/m);
       expect(pm).toMatch(/it is \*\*input, not an obstacle\.\*\*/);
       expect(cmd).toMatch(/The existing content is input, not an obstacle/);
     });
@@ -252,6 +271,12 @@ describe('PRD authoring pipeline', () => {
       }
       expect(pm).toMatch(/Additional context/);
       expect(pm).toMatch(/not a recoverable mistake/);
+    });
+
+    it('does not treat prior Synthex output as a convention', () => {
+      // An epic asserting its own authority proves nothing if Synthex wrote it.
+      expect(pm).toMatch(/content Synthex itself wrote earlier is not evidence of a convention/i);
+      expect(pm).toMatch(/Check provenance before deferring/);
     });
 
     it('checks for loss rather than assuming none, via prior_content', () => {
@@ -288,27 +313,27 @@ describe('PRD authoring pipeline', () => {
     });
 
     it('it sits directly after the problem statement, above the fold', () => {
-      const problemPos = pm.indexOf('## Problem');
+      const whyPos = pm.indexOf('## Why this exists');
       const navPos = pm.indexOf('## Where the detail lives');
-      const whoPos = pm.indexOf("## Who it's for");
-      expect(problemPos).toBeGreaterThan(-1);
-      expect(navPos).toBeGreaterThan(problemPos);
-      expect(navPos).toBeLessThan(whoPos);
+      const measuresPos = pm.indexOf("## How we'll know it worked");
+      expect(whyPos).toBeGreaterThan(-1);
+      expect(navPos).toBeGreaterThan(whyPos);
+      expect(navPos).toBeLessThan(measuresPos);
       expect(pm).toMatch(/above the fold/);
     });
 
     it('routes to all three live artifacts', () => {
-      const nav = pm.split('## Where the detail lives')[1]?.split("## Who it's for")[0] ?? '';
+      const nav = pm.split('## Where the detail lives')[1]?.split("## How we'll know")[0] ?? '';
       expect(nav).toMatch(/Product Requirements/);
       expect(nav).toMatch(/Implementation Plan/);
       expect(nav).toMatch(/Work items/);
     });
 
     it('each route carries a current-state signal', () => {
-      const nav = pm.split('## Where the detail lives')[1]?.split("## Who it's for")[0] ?? '';
+      const nav = pm.split('## Where the detail lives')[1]?.split("## How we'll know")[0] ?? '';
       expect(nav).toMatch(/Current state/);
       expect(nav).toMatch(/updated \d{4}-\d{2}-\d{2}/);
-      expect(nav).toMatch(/Phase 2 of 3/);
+      expect(nav).toMatch(/Phase 2 of 6/);
     });
 
     it('states the wrong inference not to make, verbatim', () => {
@@ -338,19 +363,34 @@ describe('PRD authoring pipeline', () => {
 
   describe('Volatile content is excluded from the epic body', () => {
     it('states the rule as a testable predicate', () => {
-      expect(pm).toMatch(/^### The volatile-content rule$/m);
-      expect(pm).toMatch(
-        /If it has a status, a date, a count, or a task, it does not belong in the epic body/,
-      );
+      expect(pm).toMatch(/^### Phases and other volatile content$/m);
+      expect(pm).toMatch(/do \*\*not\*\* belong on the epic page/);
     });
 
     it('names the consequence of breaking it', () => {
-      expect(pm).toMatch(/age into a confident-looking lie/);
+      expect(pm).toMatch(/putting them on the landing page is the failure above/);
     });
 
     it('carves out the navigation block as the sole exception', () => {
-      expect(pm).toMatch(/The one exception is the navigation block, which is volatile \*\*by design\*\*/);
       expect(cmd).toMatch(/only volatile content permitted in an epic body/);
+      expect(pm).toMatch(/Never strip such content without a verified destination/);
+    });
+
+    it('requires a verified destination before relocating', () => {
+      // The rule previously named an exit without an entrance, which on a real
+      // project would have deleted the only copy of Phases 2-6.
+      for (const [name, text] of [['product-manager', pm], ['write-prd', cmd]] as const) {
+        expect(text, `${name} omits the destination requirement`).toMatch(
+          /verified destination|Relocation requires a destination/,
+        );
+      }
+      expect(cmd).toMatch(/Naming an exit without an entrance is prescribed data loss/);
+      expect(pm).toMatch(/report the required sequence and stop/);
+    });
+
+    it('names the plan as the destination, at two resolutions', () => {
+      expect(pm).toMatch(/all phases named with their outcome, and only committed phases decomposed/);
+      expect(pm).toMatch(/Detail follows commitment/);
     });
 
     it('linter flags volatile content outside the navigation block as CRITICAL', () => {
@@ -369,7 +409,7 @@ describe('PRD authoring pipeline', () => {
     });
 
     it('write-prd redirects volatile discovery output rather than filing it', () => {
-      expect(cmd).toMatch(/\*\*Everything else in the brief must be non-volatile\.\*\*/);
+      expect(cmd).toMatch(/\*\*Everything else on the epic page must be non-volatile\.\*\*/);
       expect(cmd).toMatch(/say so rather than filing it here/);
     });
   });
@@ -409,35 +449,63 @@ describe('PRD authoring pipeline', () => {
     });
   });
 
-  describe('PRD no longer duplicates the brief', () => {
-    it('template opens with a Brief link instead of restating it', () => {
-      expect(pm).toMatch(/\*\*Brief:\*\* \[link to the epic/);
-      expect(pm).toMatch(/It does \*not\* restate the vision, the users, the scope boundary, or the success metrics/);
+  describe('PRD has two shapes, one per backend', () => {
+    it('documents both shapes and why they differ', () => {
+      expect(pm).toMatch(/^### Filesystem backend — self-contained$/m);
+      expect(pm).toMatch(/^### Notion backend — requirements, with the why on the epic page$/m);
+      expect(pm).toMatch(
+        /the same information placed where that backend's readers actually arrive/,
+      );
     });
 
-    it('template has no vision/users/scope/metrics sections', () => {
-      const tmpl = pm.split('## PRD Structure (Default Template)')[1]?.split('```\n\n**A PRD')[0] ?? '';
-      for (const gone of ['Vision & Purpose', 'Target Users', 'Out of Scope', 'Success Metrics']) {
-        expect(tmpl, `PRD template still contains ${gone}`).not.toContain(gone);
+    it('filesystem shape keeps the why sections', () => {
+      const fs = pm.split('### Filesystem backend')[1]?.split('### Notion backend')[0] ?? '';
+      for (const s of ['Vision & Purpose', 'Target Users', 'Out of Scope', 'Success Metrics']) {
+        expect(fs, `filesystem shape omits ${s}`).toContain(s);
       }
     });
 
-    it('accepts the cost of not being self-contained, explicitly', () => {
-      expect(pm).toMatch(/\*\*A PRD is not readable alone, by design\.\*\*/);
-      expect(pm).toMatch(/nothing is duplicated, so nothing can drift/);
+    it('notion shape drops exactly the three moved sections', () => {
+      const nt = pm.split('### Notion backend — requirements')[1] ?? '';
+      const shape = nt.split('```')[1] ?? '';
+      for (const gone of ['Vision & Purpose', 'Out of Scope', 'Success Metrics']) {
+        expect(shape, `notion shape still contains ${gone}`).not.toContain(gone);
+      }
     });
 
-    it('linter flags a PRD that reintroduces those sections', () => {
-      expect(linter).toMatch(/No Vision \/ Users \/ Out of Scope \/ Success Metrics section/);
+    it('keeps Target Users in the PRD under both shapes', () => {
+      // The epic page carries the audience as a clause; detailed personas are
+      // requirements context. This is what dissolves the overlap a real run hit.
+      const nt = pm.split('### Notion backend — requirements')[1] ?? '';
+      expect(nt).toMatch(/\*\*Target Users stays here\*\*/);
+      expect(nt.split('```')[1] ?? '').toContain('Target Users');
     });
 
-    it('linter requires the Brief reference', () => {
-      expect(linter).toMatch(/`\*\*Brief:\*\*` reference present/);
-      expect(linter).toMatch(/deliberately not self-contained/);
+    it('notion shape opens with an Epic link', () => {
+      expect(pm).toMatch(/\*\*Epic:\*\* \[link to the epic page\]/);
     });
 
-    it('command tells the PM not to re-ask what the brief settled', () => {
-      expect(cmd).toMatch(/Do \*\*not\*\* re-ask what the brief already answers/);
+    it('accepts the not-readable-alone cost only for the notion shape', () => {
+      expect(pm).toMatch(/a PRD is not readable alone, and that is the accepted cost/);
+      expect(pm).toMatch(/one authoritative home per fact/);
+    });
+
+    it('linter conditions the shape on epic_page_present', () => {
+      expect(linter).toMatch(/epic_page_present/);
+      expect(linter).toMatch(/When `epic_page_present`: no Vision, Out of Scope, or Success Metrics section/);
+      expect(linter).toMatch(/When `epic_page_present` is false: Vision, Out of Scope, and Success Metrics all present/);
+    });
+
+    it('linter requires Target Users under either shape', () => {
+      expect(linter).toMatch(/present under \*\*either\*\* shape/);
+    });
+
+    it('command passes the shape flag to the linter', () => {
+      expect(cmd).toMatch(/`epic_page_present` so it applies the right shape/);
+    });
+
+    it('command tells the PM not to re-ask what discovery settled', () => {
+      expect(cmd).toMatch(/Do \*\*not\*\* re-ask what discovery already answered/);
     });
   });
 
@@ -527,8 +595,8 @@ describe('PRD authoring pipeline', () => {
 
     it('branches on what actually exists rather than on the PRD alone', () => {
       const step = cmd.split('### 1. Decide What This Run Is Doing')[1]?.split('### 2.')[0] ?? '';
-      expect(step).toMatch(/\| Brief \| PRD \| Action \|/);
-      expect(step).toMatch(/absent \| absent/);
+      expect(step).toMatch(/\| Epic page \| PRD \| Action \|/);
+      expect(step).toMatch(/absent or n\/a \| absent/);
     });
   });
 
@@ -540,10 +608,10 @@ describe('PRD authoring pipeline', () => {
       np = read('commands/next-priority.md');
     });
 
-    it('--brief-only bypasses the PRD gate entirely', () => {
+    it('--epic-only bypasses the PRD gate entirely', () => {
       // Previously Step 1 ran unconditionally, so asking for just the brief
       // prompted about the PRD, and none of the options was "just the brief".
-      expect(cmd).toMatch(/If `--brief-only` is set, skip the PRD entirely/);
+      expect(cmd).toMatch(/If `--epic-only` is set, skip the PRD entirely/);
       expect(cmd).toMatch(/it is not this run's concern/);
     });
 
@@ -554,7 +622,7 @@ describe('PRD authoring pipeline', () => {
     });
 
     it('surfaces the refresh option where a user would look for it', () => {
-      expect(cmd).toMatch(/\*\*Refresh the epic brief\*\*/);
+      expect(cmd).toMatch(/\*\*Refresh the epic page\*\*/);
       expect(cmd).toMatch(/Leaves the PRD alone/);
       expect(cmd).toMatch(/discoverable from the command you would naturally reach for/);
     });
@@ -562,7 +630,7 @@ describe('PRD authoring pipeline', () => {
     it('next-priority does not inject a block into a free-form body', () => {
       expect(np).toMatch(/\*\*When the section does not exist\*\*/);
       expect(np).toMatch(/do not inject it/);
-      expect(np).toMatch(/Run \/synthex:write-prd --brief-only to standardize it/);
+      expect(np).toMatch(/Run \/synthex:write-prd --epic-only to standardize it/);
     });
 
     it('explains why restructuring belongs to write-prd, not to a task run', () => {
@@ -571,8 +639,8 @@ describe('PRD authoring pipeline', () => {
     });
 
     it('inserts the block only into an already-standard body', () => {
-      expect(np).toMatch(/Insert it only when the body is already in standard brief shape/);
-      expect(np).toMatch(/directly after `## Problem`/);
+      expect(np).toMatch(/Insert it only when the body is already in standard epic-page shape/);
+      expect(np).toMatch(/directly after `## Why this exists`/);
     });
   });
 

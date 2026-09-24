@@ -241,7 +241,7 @@ Ask via `AskUserQuestion`, multi-select:
 >
 > **Epic-scoped** — these belong to one initiative, so anyone opening the epic finds them:
 >
-> - The brief — *the epic's own body*, refined into a standard format
+> - The epic page itself — *its own body*, refined into a standard format (always, when an epics database is configured)
 > - Product requirements (PRDs) — a subpage
 > - Implementation plans — a subpage
 > - Retrospectives — dated subpages
@@ -253,7 +253,7 @@ Ask via `AskUserQuestion`, multi-select:
 > - RFCs
 > - Runbooks
 
-If the epic property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to, and no body to hold the brief. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
+If the epic property is a select or text type rather than a relation, the epic-scoped options are unavailable — there is no epic page to anchor to, and no body to hold the epic page's summary. Say so rather than offering a choice that cannot be honored, and route those types to the cross-cutting root or to git.
 
 Translate the selection into config:
 

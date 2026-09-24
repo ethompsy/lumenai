@@ -164,11 +164,19 @@ Degradations are reported in the response envelope, because a silent degradation
 
 Documents split along a line that predates this feature: `requirements`, `implementation_plan`, and `retros` belong to one initiative; `specs`, `decisions`, `rfcs`, and `runbooks` outlive every initiative.
 
-The epic-scoped four anchor to the epic row — and `brief` is anchored *as* the row, not beneath it.
+The epic-scoped four anchor to the epic row — and `epic_page` is anchored *as* the row, not beneath it.
 
-That exception carries the information architecture. Each artifact answers exactly one question: the brief answers *why, for whom, and how we'll know*; the PRD answers *what must be true*; the plan answers *how and in what order*; the work items answer *what state each piece is in*. Before this, the brief's content was duplicated across an epic body nobody owned and the PRD's opening sections, which meant two copies that could disagree with nothing detecting it. Giving the brief a single canonical home lets the PRD drop those sections entirely and become requirements-only.
+That exception is where the information architecture comes from, and it is worth being precise about its cause. Notion gives an initiative a page people **land on**: a database row with a body that gets opened and skimmed. A repository does not have one — `ls docs/` is the navigation, and a reader opens the document they want.
 
-The cost, accepted deliberately: a PRD is no longer readable alone. A reader needs the brief too. That is the price of having nothing duplicated, and therefore nothing able to drift. The cross-cutting four have no anchor, resolve against the docs root, and **default to the filesystem** — Synthex reads specs and decisions on every review invocation, so fetching them over MCP would tax every review, and they are engineering-internal anyway.
+Having a landing page creates a constraint: **the page you land on must not be the page that changes fastest**, or it is stale by default and its detail lends false authority to old information. That is not a preference about documents; it is the failure that actually occurred here, when a stakeholder read a detailed-but-stale epic body as the live plan.
+
+So under `notion` the epic page holds the slowest-changing content — why this exists, how success is judged, strategic scope — plus a navigation block routing to the rest. The PRD subpage holds requirements, and links back. Under `filesystem` there is nothing to protect from staleness-by-arrival, so `epic_page` does not exist as a doc type and the PRD is one self-contained document. Same information, placed where each backend's readers arrive.
+
+Each artifact then answers exactly one question: the epic page answers *why*; the PRD answers *what must be true*; the plan answers *how and in what order*; the work items answer *what state each piece is in*. Under the Notion shape a PRD is not readable alone, which is the accepted price of one authoritative home per fact — a copy of the why in both places would drift, with no way for a reader to tell which was current.
+
+Two rules keep this from destroying work. **Content is relocated, never stripped:** volatile content on an epic page belongs in the plan, but must not be removed until the plan verifiably holds it. Phases are the common case — the plan carries every phase at two resolutions, all named with outcomes and only committed ones decomposed, because detail follows commitment. And **Synthex's own prior output is not a convention:** an epic page asserting its own authority proves nothing if Synthex drafted that assertion, so provenance is checked before deferring to a document's claim about itself.
+
+The cross-cutting four have no anchor, resolve against the docs root, and **default to the filesystem** — Synthex reads specs and decisions on every review invocation, so fetching them over MCP would tax every review, and they are engineering-internal anyway.
 
 An epic-scoped resolve without a resolved epic fails rather than falling back to the docs root. Falling back would file one initiative's PRD into a shared page, or resolve onto another initiative's identically-titled document — a silent cross-contamination worse than an error.
 

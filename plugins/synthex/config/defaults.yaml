@@ -299,11 +299,6 @@ worktrees:
 # These can also be overridden via command parameters.
 # -------------------------------------------------------------------
 documents:
-  # The brief — why this initiative exists, for whom, and how we'll know it
-  # worked. Under the Notion backend this is the epic's OWN BODY rather than a
-  # file, and this path is unused; it is written with a section-scoped patch so
-  # body content the team authored survives.
-  brief: docs/reqs/brief.md
   requirements: docs/reqs/main.md
   implementation_plan: docs/plans/main.md
   specs: docs/specs
