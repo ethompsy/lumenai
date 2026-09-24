@@ -81,7 +81,18 @@ Use these five sections, in this order, every time. A standard shape is the poin
 
 ```markdown
 ## Problem
-[What is broken or missing, and why it is worth solving now]
+[Two or three sentences. What is broken or missing, and why it is worth solving now.]
+
+## Where the detail lives
+| | Current state |
+|---|---|
+| **📄 [Product Requirements →](link)** | 22 requirements · updated 2026-09-20 |
+| **🗺️ [Implementation Plan →](link)** | Phase 2 of 3 · 14/31 tasks done · updated 2026-09-23 |
+| **▤ [Work items →](link)** | 5 in progress · 12 to do |
+
+> This page is a summary, not the plan. For current status, follow the links above.
+
+*Maintained by Synthex — edits here are overwritten.*
 
 ## Who it's for
 [Specific users, and what they do today instead]
@@ -98,6 +109,22 @@ Use these five sections, in this order, every time. A standard shape is the poin
 ---
 *Refined from: [inputs — an existing epic body, supplied sources, this interview]*
 ```
+
+### Why the navigation block exists, and why it sits second
+
+An epic row is something people **skim**. That produced a real failure worth designing against: a stakeholder opened an epic, did not notice the requirements and plan subpages beneath it, and — because the body held a lot of detail — concluded the body *was* the current plan. It was stale.
+
+Two things went wrong, and the layout above addresses each.
+
+**The live artifacts were invisible.** So the navigation block sits directly after the problem statement, above the fold. A skimmer reaches it before they have formed an impression of what this page is.
+
+**Detail read as freshness.** Volume of detail looks like maintenance, so a reader stops looking for something newer. The `Current state` column carries that signal explicitly instead, and the disclaimer states the inference not to make. Write the disclaimer verbatim; its bluntness is the point.
+
+### The volatile-content rule
+
+**If it has a status, a date, a count, or a task, it does not belong in the epic body.** Requirements churn during refinement; milestones and tasks churn constantly; status changes hourly. Any of those in a body that people skim will age into a confident-looking lie.
+
+The one exception is the navigation block, which is volatile **by design** and therefore **owned by Synthex** rather than by a human. `next-priority` rewrites it at the end of each run, which is what keeps it from becoming the very thing it warns about. Everything else in the brief is content that stops changing once the initiative is defined.
 
 ### Refining a populated body
 

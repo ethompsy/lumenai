@@ -227,6 +227,8 @@ Documents split by scope: `brief`, `requirements`, `implementation_plan`, and `r
 
 The `brief` is the epic's **own body** rather than a subpage, so each artifact answers exactly one question — brief: *why, for whom, how we'll know*; PRD: *what must be true*; plan: *how and in what order*. The PRD links to the brief instead of restating it, so there is no second copy to drift.
 
+An epic body holds only non-volatile content: **if it has a status, a date, a count, or a task, it does not go there.** The sole exception is a `Where the detail lives` navigation block — links to the PRD, plan, and work items with a current-state line each, plus a disclaimer that the page is a summary. Synthex owns that block and `next-priority` refreshes it once per run. Both rules exist because a detailed-but-stale epic body was once read as the live plan: detail implies freshness unless something else carries that signal explicitly.
+
 Run `/synthex:configure-notion` to set it up. See [`docs/specs/notion-backend/setup.md`](docs/specs/notion-backend/setup.md) for the setup guide, [`docs/specs/notion-backend/architecture.md`](docs/specs/notion-backend/architecture.md) for the design, and [`plugins/synthex/agents/_shared/document-store-contract.md`](plugins/synthex/agents/_shared/document-store-contract.md) for the normative contract.
 
 ## Project Configuration Framework

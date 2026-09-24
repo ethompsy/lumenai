@@ -66,9 +66,22 @@ You lint two document types. Which rubric applies is determined by the `document
 | `## Out of scope` present and **non-empty** | HIGH | The most-skipped section and the one that bounds implementation |
 | `## How we'll know` present | HIGH | Unmeasurable success means nobody can tell if it worked |
 | `## How we'll know` states something measurable | HIGH | "Users are happy" is not a metric |
+| `## Where the detail lives` present | **CRITICAL** | Without it a reader has no route to the live artifacts — the failure this format was designed against |
+| That section appears directly after `## Problem` | HIGH | It must sit above the fold; a skimmer has to reach it before forming an impression |
+| It links the requirements page, the plan, and the work items | HIGH | A partial route is the same problem in miniature |
+| Each link carries a current-state line | HIGH | Without a freshness signal, detail elsewhere on the page implies currency by itself |
+| The summary-not-the-plan disclaimer present, verbatim | HIGH | It names the exact wrong inference; paraphrase dilutes it |
 | Sections appear in the standard order | MEDIUM | The format is standardized so any reader knows where to look |
 | `*Refined from:*` footer present | MEDIUM | Records what the brief was built from |
-| No section beyond the five plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
+| No section beyond the standard set plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
+
+**Volatile content outside the navigation block:**
+
+| Check | Severity | Rationale |
+|-------|----------|-----------|
+| No status, date, count, task, or milestone outside `## Where the detail lives` | **CRITICAL** | An epic body is skimmed. Volatile content there ages into a confident-looking lie, which is precisely how a stale epic once got read as the live plan. |
+
+Flag a violation with the offending text quoted and the artifact it belongs in — the plan for anything milestone- or task-shaped, the work items for anything status-shaped. Do not move it yourself; report it.
 
 **When the brief was refined from pre-existing content**, one check outranks the rest:
 

@@ -16,6 +16,7 @@
 Synthex's documents and implementation-plan tasks appear in Notion instead of only as markdown in your repository:
 
 - The **epic's own body becomes a standardized brief** — why this exists, who it's for, what changes, what's out of scope, how you'll know it worked. If your epic already has content, Synthex reads it and refines it into that shape *with you*; it never discards what's there.
+- The brief carries a **`Where the detail lives`** block near the top: links to the requirements, the plan, and the work items, each with a current-state line, plus a blunt note that the page is a summary rather than the plan. Synthex refreshes it at the end of every `next-priority` run.
 - An initiative's **requirements, plan, and retrospectives become subpages of its epic**, so anyone opening the epic finds them.
 - **Plan tasks become rows in your work database**, linked to that epic, with status updated as work completes.
 
@@ -23,6 +24,9 @@ Synthex's documents and implementation-plan tasks appear in Notion instead of on
 Epics DB
   ▸ Billing Migration              ← the epic you already have
       │  body = the Brief          ← refined into a standard format, with you
+      │    Problem
+      │    Where the detail lives  ← links + freshness, kept current by Synthex
+      │    Who it's for / Out of scope / How we'll know
       ├─ Product Requirements      ← Synthex adds these
       ├─ Implementation Plan
       └─ Retrospective 2026-09-22
@@ -131,6 +135,25 @@ This is optional — leave the assignee property unset and you get epic scoping 
 ### Not guessing
 
 Synthex will not derive an epic from a filename, branch, or plan title. A guessed value matching no rows returns an empty queue, which looks exactly like "all work complete" — so a missing or ambiguous epic is an error you hear about, not a silent no-op.
+
+## 4a. Why the epic body stays short
+
+An epic row is something people skim, and that produced a failure worth knowing about: a stakeholder opened an epic, did not notice the requirements and plan subpages beneath it, and — because the body held a lot of detail — took the body to be the current plan. It was stale.
+
+Two things went wrong. The live artifacts were invisible, and **detail read as freshness** — a long document looks maintained, so a reader stops looking for a newer one.
+
+So the epic body holds only what stops changing once an initiative is defined:
+
+| Stays in the epic | Never in the epic |
+|---|---|
+| The problem, and why now | Requirements |
+| Who it's for | Milestones and tasks |
+| Out of scope | Status, dates, counts |
+| How we'll know it worked | Anything with a checkbox |
+
+**The rule: if it has a status, a date, a count, or a task, it does not go in the epic body.** The single exception is the `Where the detail lives` block, which is volatile on purpose and maintained by Synthex rather than by hand — which is what stops it becoming the stale detail it warns against.
+
+If you find yourself wanting to put progress in the epic, that is what the block is for, and `next-priority` already keeps it current.
 
 ## 5. Property mapping
 

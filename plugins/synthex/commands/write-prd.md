@@ -127,7 +127,19 @@ With an empty body, run discovery to establish the same five things, drawing on 
 
 **Floor condition.** If Problem, Who it's for, and Out of scope cannot be established, **stop and report what is missing.** Do not draft. With no sources and no answers there is nothing to write from, and producing something anyway is the failure this command exists to prevent.
 
-#### 5d. Lint and write
+#### 5d. Write the navigation block
+
+The brief carries a `## Where the detail lives` section directly after `## Problem`, listing the requirements page, the plan, and the filtered work-item view, each with a current-state line — plus this disclaimer, verbatim:
+
+> This page is a summary, not the plan. For current status, follow the links above.
+
+Populate what exists. On a first run the plan does not exist yet, so list it as *not yet created* rather than omitting the row; a reader should see that the plan is absent, not be left unable to tell.
+
+This section is the reason the format has a navigation block at all: an epic is skimmed, and a stakeholder once read a detailed-but-stale epic body as the live plan because nothing pointed elsewhere and nothing signalled age. It is also the only volatile content permitted in an epic body, and Synthex owns it — `next-priority` refreshes it at the end of each run.
+
+**Everything else in the brief must be non-volatile.** No status, no dates, no counts, no tasks, no milestones. If discovery surfaces content of that shape, it belongs in the plan or the work items, and you should say so rather than filing it here.
+
+#### 5e. Lint and write
 
 Invoke **prd-linter** with `document: "brief"`, the draft, and `prior_content` when refining. Resolve every CRITICAL — including any content the refinement lost.
 

@@ -271,6 +271,144 @@ describe('PRD authoring pipeline', () => {
     });
   });
 
+  describe('Navigation and freshness in the epic body', () => {
+    // Designed against an observed failure: a stakeholder opened an epic,
+    // missed the subpages beneath it, and read the body's detail as evidence
+    // it was the live plan. It was stale. Detail implied freshness because
+    // nothing else carried that signal.
+    let np: string;
+    let contract: string;
+    beforeAll(() => {
+      np = read('commands/next-priority.md');
+      contract = read('agents/_shared/document-store-contract.md');
+    });
+
+    it('brief template carries a navigation section', () => {
+      expect(pm).toMatch(/^## Where the detail lives$/m);
+    });
+
+    it('it sits directly after the problem statement, above the fold', () => {
+      const problemPos = pm.indexOf('## Problem');
+      const navPos = pm.indexOf('## Where the detail lives');
+      const whoPos = pm.indexOf("## Who it's for");
+      expect(problemPos).toBeGreaterThan(-1);
+      expect(navPos).toBeGreaterThan(problemPos);
+      expect(navPos).toBeLessThan(whoPos);
+      expect(pm).toMatch(/above the fold/);
+    });
+
+    it('routes to all three live artifacts', () => {
+      const nav = pm.split('## Where the detail lives')[1]?.split("## Who it's for")[0] ?? '';
+      expect(nav).toMatch(/Product Requirements/);
+      expect(nav).toMatch(/Implementation Plan/);
+      expect(nav).toMatch(/Work items/);
+    });
+
+    it('each route carries a current-state signal', () => {
+      const nav = pm.split('## Where the detail lives')[1]?.split("## Who it's for")[0] ?? '';
+      expect(nav).toMatch(/Current state/);
+      expect(nav).toMatch(/updated \d{4}-\d{2}-\d{2}/);
+      expect(nav).toMatch(/Phase 2 of 3/);
+    });
+
+    it('states the wrong inference not to make, verbatim', () => {
+      const disclaimer = 'This page is a summary, not the plan. For current status, follow the links above.';
+      expect(pm).toContain(disclaimer);
+      expect(cmd).toContain(disclaimer);
+      expect(pm).toMatch(/its bluntness is the point/);
+    });
+
+    it('marks the section as Synthex-owned', () => {
+      expect(pm).toMatch(/Maintained by Synthex — edits here are overwritten/);
+    });
+
+    it('records the failure it was designed against', () => {
+      for (const [name, text] of [
+        ['product-manager', pm],
+        ['contract', contract],
+        ['write-prd', cmd],
+      ] as const) {
+        expect(text, `${name} omits the observed failure`).toMatch(
+          /stale|did not notice|missed the/i,
+        );
+      }
+      expect(pm).toMatch(/Detail read as freshness/);
+    });
+  });
+
+  describe('Volatile content is excluded from the epic body', () => {
+    it('states the rule as a testable predicate', () => {
+      expect(pm).toMatch(/^### The volatile-content rule$/m);
+      expect(pm).toMatch(
+        /If it has a status, a date, a count, or a task, it does not belong in the epic body/,
+      );
+    });
+
+    it('names the consequence of breaking it', () => {
+      expect(pm).toMatch(/age into a confident-looking lie/);
+    });
+
+    it('carves out the navigation block as the sole exception', () => {
+      expect(pm).toMatch(/The one exception is the navigation block, which is volatile \*\*by design\*\*/);
+      expect(cmd).toMatch(/only volatile content permitted in an epic body/);
+    });
+
+    it('linter flags volatile content outside the navigation block as CRITICAL', () => {
+      expect(linter).toMatch(
+        /No status, date, count, task, or milestone outside `## Where the detail lives` \| \*\*CRITICAL\*\*/,
+      );
+    });
+
+    it('linter reports misplaced content rather than relocating it', () => {
+      expect(linter).toMatch(/Do not move it yourself; report it/);
+      expect(linter).toMatch(/the artifact it belongs in/);
+    });
+
+    it('linter treats a missing navigation section as CRITICAL', () => {
+      expect(linter).toMatch(/`## Where the detail lives` present \| \*\*CRITICAL\*\*/);
+    });
+
+    it('write-prd redirects volatile discovery output rather than filing it', () => {
+      expect(cmd).toMatch(/\*\*Everything else in the brief must be non-volatile\.\*\*/);
+      expect(cmd).toMatch(/say so rather than filing it here/);
+    });
+  });
+
+  describe('next-priority keeps the freshness block current', () => {
+    let np: string;
+    beforeAll(() => {
+      np = read('commands/next-priority.md');
+    });
+
+    it('refreshes it at the end of the run', () => {
+      expect(np).toMatch(/Refresh the epic's navigation block once, at the end of the run/);
+    });
+
+    it('updates phase, counts, and dates', () => {
+      expect(np).toMatch(/updating the phase, the done\/total task counts/);
+    });
+
+    it('is once per run, not per task', () => {
+      // A write per status transition churns page history for no added signal.
+      expect(np).toMatch(/\*\*Once per run, not per task\.\*\*/);
+      expect(np).toMatch(/churn the page history for no added signal/);
+    });
+
+    it('updates even when the run ends with work outstanding', () => {
+      // A partially-finished run is when someone is most likely to look.
+      expect(np).toMatch(/including when the run ends with tasks still open/);
+      expect(np).toMatch(/most likely to go looking/);
+    });
+
+    it('patches rather than replacing the body', () => {
+      expect(np).toMatch(/Use `patch`, never `write`: the rest of the body is the team's/);
+    });
+
+    it('explains why keeping it current is not cosmetic', () => {
+      expect(np).toMatch(/makes staleness visible instead of invisible/);
+    });
+  });
+
   describe('PRD no longer duplicates the brief', () => {
     it('template opens with a Brief link instead of restating it', () => {
       expect(pm).toMatch(/\*\*Brief:\*\* \[link to the epic/);

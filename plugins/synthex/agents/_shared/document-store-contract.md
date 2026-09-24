@@ -83,6 +83,12 @@ This has three consequences.
 
 **An existing body is input, not an obstacle.** When the body is populated, it is read as a source and refined into the standard brief format collaboratively — not replaced, and not left inconsistent. Content that maps to no standard section MUST be surfaced to the user or preserved under `Additional context`; it MUST NOT be dropped. Reshaping prose into a template is exactly where material quietly disappears, and silently deleting a PM's framing is not a recoverable error.
 
+**It carries one Synthex-owned section.** An epic row is skimmed, so volatile content must not live in its body: anything with a status, a date, a count, or a task will age into a confident-looking lie. The single exception is a `## Where the detail lives` navigation section — links to the epic-scoped subpages and the filtered work-item view, each with a current-state line, plus a verbatim disclaimer that the page is a summary rather than the plan.
+
+That section is volatile by design and therefore owned by Synthex rather than by a human. `update_task_status` callers refresh it once per run (not per task), which is what stops it becoming the stale detail it warns against. Every other part of the brief is content that stops changing once the initiative is defined.
+
+This exists because of an observed failure: a stakeholder opened an epic, missed the subpages beneath it, and read the body's detail as evidence it was the live plan. It was stale. The navigation section addresses both halves — it makes the live artifacts visible above the fold, and it carries the freshness signal explicitly so detail no longer has to imply it.
+
 **It has no conventional title**, because it is not a child page. Resolution for `brief` is the resolved epic page, full stop — `notion.targets.brief` is meaningless and MUST be ignored if present.
 
 Under the `filesystem` backend the brief is an ordinary document at `documents.brief`, and all of the above except the title rule applies unchanged.
