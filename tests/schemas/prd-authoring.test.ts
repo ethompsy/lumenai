@@ -115,6 +115,68 @@ describe('PRD authoring pipeline', () => {
     });
   });
 
+  describe('The epic reference has an origin', () => {
+    // Before this, nothing created the reference: write-prd said "resolve the
+    // epic_page doc type" without saying how, and write-implementation-plan
+    // read it from a line it then set itself. Every artifact inherited from
+    // something nothing produced.
+    let wip: string;
+    beforeAll(() => {
+      wip = read('commands/write-implementation-plan.md');
+    });
+
+    it('write-prd declares itself the origin', () => {
+      expect(cmd).toMatch(/\*\*This command originates the epic reference\.\*\*/);
+      expect(cmd).toMatch(/nothing upstream can supply it/);
+    });
+
+    it('takes an --epic parameter', () => {
+      expect(cmd).toMatch(/`--epic <url\\\|id>`/);
+    });
+
+    it('resolves in a stated order, ending in asking', () => {
+      const step = cmd.split('#### 1a. Resolve the epic')[1]?.split('#### 1b.')[0] ?? '';
+      expect(step).toMatch(/`--epic`, when supplied/);
+      expect(step).toMatch(/existing PRD's `\*\*Epic:\*\*` link/);
+      expect(step).toMatch(/`notion\.epic\.value` from config/);
+      expect(step).toMatch(/\*\*Ask\.\*\*/);
+    });
+
+    it('never auto-selects, even on a single match', () => {
+      expect(cmd).toMatch(/Never auto-select, even on a single match/);
+    });
+
+    it('verifies the epic by fetching it before proceeding', () => {
+      expect(cmd).toMatch(/Verify the resolved epic by fetching it/);
+      expect(cmd).toMatch(/rather than proceeding with an unverified anchor/);
+    });
+
+    it('records it in the PRD so the plan inherits it', () => {
+      expect(cmd).toMatch(/is written into the PRD as its `\*\*Epic:\*\*` link/);
+      expect(cmd).toMatch(/that record is how `write-implementation-plan` learns which epic/);
+    });
+
+    it('the plan reads it from the PRD rather than re-asking', () => {
+      expect(wip).toMatch(/Resolve the epic from \*\*the PRD's\*\* `\*\*Epic:\*\*` link/);
+      expect(wip).toMatch(/\*\*Copy the epic reference onto the plan\.\*\*/);
+      expect(wip).toMatch(/rather than asking the user/);
+    });
+
+    it('explains why re-asking is the hazard', () => {
+      expect(wip).toMatch(
+        /re-asking something already recorded is how two artifacts end up pointing at different epics/,
+      );
+    });
+
+    it('the plan asks only when the PRD has no link', () => {
+      expect(wip).toMatch(/Ask the user only when the PRD has no `\*\*Epic:\*\*` link/);
+    });
+
+    it('does not apply under the filesystem backend', () => {
+      expect(cmd).toMatch(/Under `filesystem` this step does not apply — there is no epic/);
+    });
+  });
+
   describe('Discovery precedes specification', () => {
     it('command establishes the why before requirements', () => {
       expect(cmd).toMatch(/^### 5\. Establish the Why$/m);

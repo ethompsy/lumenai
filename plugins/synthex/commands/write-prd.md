@@ -13,6 +13,7 @@ The design commitment: **source documents change what the interview is about; th
 | Parameter | Description | Default | Required |
 |-----------|-------------|---------|----------|
 | `--from <path>` | Source material to ingest. Repeatable. Accepts a file, a glob, a directory, a URL, or a Notion page URL. | — | No |
+| `--epic <url\|id>` | The epic this PRD belongs to, as a Notion page URL or id. When omitted, Synthex resolves it interactively (Step 1a). Notion backend only. | — | No |
 | `--epic-only` | Stop once the epic page is established, without specifying requirements. Notion backend only. | off | No |
 | `requirements_path` | Where the PRD is written | `docs/reqs/main.md` | No |
 | `config_path` | Path to synthex project config | `.synthex/config.yaml` | No |
@@ -32,7 +33,26 @@ The design commitment: **source documents change what the interview is about; th
 
 ### 1. Decide What This Run Is Doing
 
-Under the `notion` backend, resolve the `epic_page` document type — the epic row itself. Then read `@{requirements_path}`.
+#### 1a. Resolve the epic (Notion backend)
+
+**This command originates the epic reference.** It is first in the chain, so nothing upstream can supply it: the PRD records it, the plan inherits it from the PRD, and the task store filters on it. If it is not established here, every downstream command is left guessing.
+
+Resolve it in this order, first match wins:
+
+1. `--epic`, when supplied — a page URL or id.
+2. The existing PRD's `**Epic:**` link, when re-running against a PRD that already has one.
+3. `notion.epic.value` from config — a default that single-initiative projects may set, and that multi-initiative repos are advised to leave null.
+4. **Ask.** Search `notion.epics_database` and present the candidates for the user to pick. Never auto-select, even on a single match — confirm it. Offer to create an epic row only if the user asks, and then only with a title.
+
+Verify the resolved epic by fetching it. If it cannot be fetched, report `target_not_found` with the value echoed back and re-ask rather than proceeding with an unverified anchor.
+
+Hold the resolved reference for the rest of the run. It anchors the epic page (Step 5), parents the PRD subpage (Step 9), and is written into the PRD as its `**Epic:**` link so `write-implementation-plan` inherits it rather than asking again.
+
+Under `filesystem` this step does not apply — there is no epic.
+
+#### 1b. Branch on what exists
+
+Read `@{requirements_path}`.
 
 **If `--epic-only` is set, skip the PRD entirely** — it is not this run's concern. Go to Step 2, then Step 5, then stop. This is the path for standardizing or refreshing an epic on a project whose PRD and plan already exist.
 
@@ -202,7 +222,9 @@ Lint runs **once** per draft. It is not part of the review loop.
 
 ### 9. Write and Hand Off
 
-Write the PRD to `@{requirements_path}`, then report and hand off:
+Write the PRD to `@{requirements_path}`. Under `notion`, its first line after the H1 is the `**Epic:**` link resolved in Step 1a — that record is how `write-implementation-plan` learns which epic this initiative belongs to without asking the user a second time.
+
+Then report and hand off:
 
 ```
 Epic    → epic page (refined from existing content + 2 sources)

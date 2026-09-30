@@ -86,6 +86,39 @@ Before enabling anything it shows a data-transmission warning describing exactly
 
 ---
 
+## 3a. Starting a PRD from an epic and some source docs
+
+The common case: an epic exists in your Epics database, and you have notes, research, or a draft spec.
+
+```bash
+/synthex:write-prd \
+  --epic https://www.notion.so/<epic-row-url> \
+  --from notes/kickoff.md \
+  --from research/ \
+  --from https://www.notion.so/<meeting-notes-page>
+```
+
+`--from` is repeatable and takes files, globs, directories, URLs, and Notion pages — including the epic's own body, which is often the best single source.
+
+What happens, in order:
+
+1. **The epic is resolved and verified** by fetching it. Omit `--epic` and Synthex searches your Epics database and asks you to pick; it never auto-selects, even on a single match.
+2. **Sources are read**, along with the repo itself — README, CLAUDE.md, package.json, existing specs — and capped, with anything oversized summarized. You are told what was read and what got summarized.
+3. **Discovery** settles why this exists, for whom, what is out of scope, and how success is judged. Answers come from the sources where they exist; you are asked only where they do not.
+4. **The epic page is refined** into standard shape, collaboratively — mapping shown, gaps and leftovers raised, approval taken before anything is written. Nothing already there is discarded.
+5. **Requirements are specified**, each tagged with where it came from.
+6. **The PRD is written** as the epic's `Product Requirements` subpage, opening with an `**Epic:**` link.
+
+Then `/synthex:write-implementation-plan` reads that link and inherits the epic — you are not asked twice.
+
+**If you only want to fix the epic page**, stop after step 4:
+
+```bash
+/synthex:write-prd --epic <url> --epic-only
+```
+
+**Expect a longer interview when sources are thin.** With nothing but the repo, Synthex must elicit everything and will say so up front. That is the honest cost of a PRD grounded in conversation rather than documents.
+
 ## 4. How Synthex stays in its lane
 
 **This is the most important section.** Two dimensions of scoping, and both matter.
