@@ -185,6 +185,51 @@ describe('/synthex:use-epic', () => {
     });
   });
 
+  describe('Non-Notion workflows are unaffected', () => {
+    it.each(PATH_COMMANDS)('%s puts the skip instruction before the fallback rule', (c) => {
+      // Ordering is behavioural, not cosmetic: an agent reading the section
+      // top-down must be told to skip it before it reads a resolution rule
+      // that includes "stop rather than falling through". Reversed, a
+      // filesystem-only project could halt a command that should just use
+      // documents.*.
+      const text = read(`commands/${c}.md`);
+      const skip = text.indexOf('skip this section entirely');
+      const note = text.indexOf('**Active-epic fallback.**');
+      expect(skip).toBeGreaterThan(-1);
+      expect(note).toBeGreaterThan(-1);
+      expect(note).toBeGreaterThan(skip);
+    });
+
+    it.each(PATH_COMMANDS)('%s keeps the fallback inside the Document Backend section', (c) => {
+      // Inside the section means the skip clause governs it. Outside, it would
+      // apply unconditionally.
+      const text = read(`commands/${c}.md`);
+      const header = text.indexOf('## Document Backend');
+      const workflow = text.indexOf('## Workflow');
+      const note = text.indexOf('**Active-epic fallback.**');
+      expect(note).toBeGreaterThan(header);
+      expect(note).toBeLessThan(workflow);
+    });
+
+    it.each(PATH_COMMANDS)('%s still states the byte-identical guarantee', (c) => {
+      const text = read(`commands/${c}.md`);
+      expect(text).toContain('FR-NB2');
+      expect(text).toMatch(/byte-identical to pre-Notion behavior/);
+    });
+
+    it('use-epic requires the Notion backend and stops otherwise', () => {
+      expect(cmd).toMatch(/Requires the Notion backend/);
+      expect(cmd).toMatch(/Commands use the paths in documents\.\* as normal/);
+    });
+
+    it('adds no config key that a filesystem project must set', () => {
+      // The active epic is local state, so documents.* is unchanged.
+      const yaml = read('config/defaults.yaml');
+      expect(yaml).not.toMatch(/active_epic/);
+      expect(yaml).not.toMatch(/active-epic/);
+    });
+  });
+
   describe('Degrades cleanly without the backend', () => {
     it('reports and stops when Notion is off', () => {
       expect(cmd).toMatch(/isn't using the Notion backend, so there's no epic to activate/);

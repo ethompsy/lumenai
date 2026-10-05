@@ -35,9 +35,10 @@ You are a senior engineering manager ensuring the successful delivery of a softw
 This command reads the implementation plan's task queue and writes task state back. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
 
 **Document types touched:** `implementation_plan` (read and write, including task state)
-**Active-epic fallback.** When no explicit path argument is given, resolve in this order: explicit argument → `.synthex/active-epic.json` → `documents.*` from config. Under the `notion` backend with more than one epic available, **stop** rather than falling through to config — defaulting to `main.md` on a multi-epic project is how someone operates on another initiative. Name the epic in your first line of output so a run is never ambiguous about which initiative it touched. See [`use-epic.md`](./use-epic.md).
 
 **When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `implementation_plan_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
+
+**Active-epic fallback.** When no explicit path argument is given, resolve in this order: explicit argument → `.synthex/active-epic.json` → `documents.*` from config. Under the `notion` backend with more than one epic available, **stop** rather than falling through to config — defaulting to `main.md` on a multi-epic project is how someone operates on another initiative. Name the epic in your first line of output so a run is never ambiguous about which initiative it touched. See [`use-epic.md`](./use-epic.md).
 
 **Command-specific notes**
 
