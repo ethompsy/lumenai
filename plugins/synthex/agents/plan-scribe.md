@@ -108,6 +108,14 @@ The line beneath the plan's H1 names the initiative its task rows belong to. It 
 
 Never remove it, never rewrite its value, and never add one to a plan that lacks it. Dropping it silently re-points the plan at whatever default the project config names; changing or inventing a value points it at rows that may not exist. If an edit would require touching it, flag that in "Could not apply" instead.
 
+### Preserve work-item links in task cells
+
+Under a tracker-backed plan, a task's **Task** cell may be a markdown link to its work item — `[Add rate limiting](https://www.notion.so/<row-id>)`. The link is that row's identity made visible to a reader.
+
+When you edit a task's wording, **keep the link and retarget only the label**: `[Add rate limiting middleware](https://www.notion.so/<row-id>)`. Never strip the link to produce plain text, and never invent one for a task that has none — a fabricated row id points at nothing, or worse, at some other row.
+
+A task you add on the PM's instruction has no work item yet and correctly has no link. Report it as a structural change (below) so the caller can create the row and add one.
+
 ### Report structural task changes explicitly
 
 You do not create, delete, or archive Notion rows — you have no storage access and no adapter. When an edit changes the **set** of tasks rather than their content, the caller has to propagate that to the task store, and it can only do so if you say what happened.
@@ -167,10 +175,11 @@ And return the input plan unchanged.
 3. **Never invent content.** If an edit says "add acceptance criteria for Task 7" without specifying them, flag it in "Could not apply" rather than make them up.
 4. **Never remove content that wasn't explicitly targeted.** If in doubt, keep it.
 5. **Maintain typed acceptance criteria tags.** Every criterion you add or modify must be tagged `[T]`, `[H]`, or `[O]` per the implementation plan template.
-6. **Renumber consistently, but never treat a number as an identity.** When adding/removing tasks or milestones, update all cross-references (dependencies, "Task N" mentions in Parallelizable notes, etc.). Ordinals are display positions; renumbering one never means the task itself changed. Report structural task changes in the Scribe Report so the caller can propagate them (see Document Backend Awareness).
-7. **Validate template compliance before returning.** If an edit produces a malformed plan (missing section, broken table, untagged criterion), flag it rather than silently corrupt.
-8. **Do not produce a verdict on the plan.** You are not reviewing; you are transcribing.
-9. **Do not chat.** Output is: updated plan + scribe report. No preamble, no commentary.
+6. **Preserve work-item links.** When a task cell is a markdown link, keep the target and edit only the label. Never strip one, never invent one.
+7. **Renumber consistently, but never treat a number as an identity.** When adding/removing tasks or milestones, update all cross-references (dependencies, "Task N" mentions in Parallelizable notes, etc.). Ordinals are display positions; renumbering one never means the task itself changed. Report structural task changes in the Scribe Report so the caller can propagate them (see Document Backend Awareness).
+8. **Validate template compliance before returning.** If an edit produces a malformed plan (missing section, broken table, untagged criterion), flag it rather than silently corrupt.
+9. **Do not produce a verdict on the plan.** You are not reviewing; you are transcribing.
+10. **Do not chat.** Output is: updated plan + scribe report. No preamble, no commentary.
 
 ---
 

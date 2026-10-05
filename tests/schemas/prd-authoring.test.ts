@@ -43,6 +43,84 @@ describe('PRD authoring pipeline', () => {
     cfgText = loadDefaultsYamlText();
   });
 
+  describe('Work items are linked back into the plan table', () => {
+    let wip: string;
+    let scribe: string;
+    let linter: string;
+    beforeAll(() => {
+      wip = read('commands/write-implementation-plan.md');
+      scribe = read('agents/plan-scribe.md');
+      linter = read('agents/plan-linter.md');
+    });
+
+    it('renders each task cell as a link to its work item', () => {
+      expect(wip).toMatch(/Link each task row back into the plan table/);
+      expect(wip).toMatch(/Task cell as a markdown link/);
+    });
+
+    it('links the title rather than adding a column', () => {
+      expect(wip).toMatch(/\*\*Link the title; do not add a column\.\*\*/);
+    });
+
+    it('cites the pinned header and the baseline as the reason', () => {
+      // A new column would ripple into plan-linter, both templates, the
+      // implementation-plan tests, and a pre-change baseline — editing which
+      // would defeat its purpose and mean the disabled path changed.
+      expect(wip).toMatch(/pinned as CRITICAL by `plan-linter`/);
+      expect(wip).toMatch(/notion-baseline-snapshots\.test\.ts/);
+      expect(wip).toContain('FR-NB2');
+    });
+
+    it('the header really is pinned in all four places', () => {
+      const header = '| # | Task | Complexity | Dependencies | Status |';
+      expect(linter).toContain(header);
+      expect(read('agents/product-manager.md')).toContain(header);
+      expect(wip).toContain(header);
+    });
+
+    it('degrades to plain text without a tracker', () => {
+      expect(wip).toMatch(/the cell stays plain text and the filesystem plan is byte-identical/);
+    });
+
+    it('leaves ordinal-based dependency references alone', () => {
+      expect(wip).toMatch(/those cite ordinals \(`Task 1`\) rather than titles/);
+    });
+
+    it('creates rows before writing the plan, so one write suffices', () => {
+      expect(wip).toMatch(/\*\*Create the rows before writing the final plan\*\*/);
+      expect(wip).toMatch(/rather than requiring a follow-up patch/);
+    });
+
+    it('plan-scribe preserves the link when rewording a task', () => {
+      expect(scribe).toMatch(/^### Preserve work-item links in task cells$/m);
+      expect(scribe).toMatch(/keep the link and retarget only the label/);
+      expect(scribe).toMatch(/Never strip the link/);
+    });
+
+    it('plan-scribe never fabricates a link', () => {
+      // A made-up row id points at nothing, or at some other row.
+      expect(scribe).toMatch(/never invent one for a task that has none/);
+      expect(scribe).toMatch(/fabricated row id points at nothing/);
+    });
+
+    it('plan-scribe reports a new task as structural so a row can be created', () => {
+      expect(scribe).toMatch(/has no work item yet and correctly has no link/);
+    });
+
+    it('plan-scribe lists link preservation in its behavioral rules', () => {
+      const rules = scribe.split('## Behavioral Rules')[1] ?? '';
+      expect(rules).toMatch(/Preserve work-item links/);
+    });
+
+    it('plan-scribe rules are contiguously numbered', () => {
+      // This list has been mis-renumbered twice while being edited.
+      const rules = scribe.split('## Behavioral Rules')[1]?.split('\n---')[0] ?? '';
+      const nums = [...rules.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
+      expect(nums.length).toBeGreaterThan(0);
+      expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
+    });
+  });
+
   describe('Registration', () => {
     it('command and agent files exist', () => {
       expect(existsSync(join(PLUGIN, 'commands/write-prd.md'))).toBe(true);

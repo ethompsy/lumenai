@@ -65,6 +65,19 @@ This command a PRD and writes an implementation plan. When the Notion backend is
 - Under the `notion` backend the finished plan is written as two things, not one: the prose sections (Overview, Decisions, Open Questions, milestone summaries) go to the plan page via `notion-document-store`, and each task becomes a row in the work database via `notion-task-store`, linked to the epic. Step 7 below writes both.
 - **The plan page is a subpage of its epic.** When the epic property is a relation to an epics database, the plan is created beneath that epic's own row — so anyone opening the epic finds its requirements, plan, and work items together. Resolve the epic from **the PRD's** `**Epic:**` link — the PRD is this command's input, and `write-prd` recorded it there precisely so this command need not ask again. Without an anchor `notion-document-store` returns `schema_mismatch` rather than filing the plan somewhere arbitrary.
 - **New task rows are created unassigned.** A planned task is available work. Engineers claim items as they start them, which is how concurrent work on one epic stays collision-free.
+- **Link each task row back into the plan table.** `create_tasks` returns a `task_ref` per row; render each task's **Task cell as a markdown link** to its work item:
+
+  ```markdown
+  | # | Task | Complexity | Dependencies | Status |
+  |---|------|-----------|--------------|--------|
+  | 1 | [Add rate limiting middleware](https://www.notion.so/<row-id>) | M | None | pending |
+  ```
+
+  **Link the title; do not add a column.** The header `| # | Task | Complexity | Dependencies | Status |` is pinned as CRITICAL by `plan-linter`, appears in both plan templates, and is asserted by `tests/schemas/implementation-plan.test.ts` and by the pre-change baseline in `tests/schemas/notion-baseline-snapshots.test.ts`. A new column would require editing that baseline, which would both defeat its purpose and mean the disabled path's output changed — an FR-NB2 violation. Linking the title changes no header.
+
+  It also degrades correctly: with no Notion backend there are no work items, so the cell stays plain text and the filesystem plan is byte-identical to before. And it leaves dependency references alone, since those cite ordinals (`Task 1`) rather than titles.
+
+  **Create the rows before writing the final plan**, so the links are present in the single write rather than requiring a follow-up patch to a document you just produced.
 - **Copy the epic reference onto the plan.** Every plan records the initiative it belongs to beneath its H1. Take it from the PRD's `**Epic:**` link rather than asking the user — re-asking something already recorded is how two artifacts end up pointing at different epics. Write it as a markdown link so the line carries both a human label and the page id the relation filter needs:
 
   ```markdown
