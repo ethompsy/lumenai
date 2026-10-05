@@ -122,6 +122,7 @@ Check if `.gitignore` exists in the project root. Ensure it contains entries for
 1. The worktrees base path (`.claude/worktrees` by default, or the value from `worktrees.base_path` in the config file).
 2. The synthex upgrade-nudge state file (`.synthex/state.json`) — per FR-UO24, this file is per-developer/per-clone and must not be committed.
 3. The synthex native-looping state directory (`.synthex/loops/`) — per FR-NL10 / D-NL14, loop state is per-developer/per-clone (each loop is per-session and includes a `session_id`).
+4. The active-epic marker (`.synthex/active-epic.json`) — which epic this working copy is operating on. Per-developer by design: the committed config holds no particular epic so a team can share it while each member works a different initiative.
 
 For each entry:
 
@@ -140,6 +141,9 @@ Concretely, the resulting block to append (omitting any lines already present) i
 
 # Synthex native-looping state (per-session, per-developer)
 .synthex/loops/
+
+# Synthex active epic (per-developer; config is shared, this is not)
+.synthex/active-epic.json
 ```
 
 ### 7. Create `.worktreeinclude`
@@ -210,6 +214,7 @@ Next steps:
   3. Then turn it into a plan:  /write-implementation-plan
 
 Available commands:
+  /use-epic                    — Set which epic this working copy is on
   /write-prd                   — Author a PRD from supplied sources + interview
   /write-implementation-plan   — Transform a PRD into an implementation plan
   /next-priority               — Execute the next highest-priority tasks

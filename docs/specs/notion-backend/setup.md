@@ -86,6 +86,40 @@ Before enabling anything it shows a data-transmission warning describing exactly
 
 ---
 
+## 3. Working several epics, and sharing config with your team
+
+`.synthex/config.yaml` is committed and holds **no particular epic** — only where epics live, which property links a work item to one, and the property mappings. So you and a colleague share one config and each work a different initiative.
+
+Which epic *you* are on is per-developer state in `.synthex/active-epic.json`, which `init` gitignores:
+
+```bash
+/synthex:use-epic "Billing Migration"
+```
+
+```
+Active epic: Billing Migration
+  requirements  docs/reqs/billing.md
+  plan          docs/plans/billing.md
+```
+
+From then on, commands default to that initiative — no `--implementation_plan_path` on every call. Switch any time:
+
+```bash
+/synthex:use-epic "Checkout Revamp"     # switch
+/synthex:use-epic                       # show active + available
+/synthex:use-epic --clear               # back to explicit paths
+```
+
+Switching **never writes to your working tree.** It only changes which epic is active, so it is safe to do freely and safe to undo. If the epic has no documents yet it says so and points you at `write-prd`, rather than leaving empty files that look like work has begun.
+
+`write-prd --epic <url>` sets the active epic itself, since that is where an initiative starts — you do not need to activate it first.
+
+**One safety behaviour worth knowing.** With several epics available and no active epic and no explicit path, commands **stop** instead of falling back to `docs/plans/main.md`:
+
+> `No active epic, and no path given. Run /synthex:use-epic <epic> first, or pass --implementation_plan_path explicitly.`
+
+On a multi-epic project a silent default is how someone marks another initiative's tasks done. Every command that operates on an epic also names it in its first line of output, so a run is never ambiguous about what it touched.
+
 ## 3a. Starting a PRD from an epic and some source docs
 
 The common case: an epic exists in your Epics database, and you have notes, research, or a draft spec.

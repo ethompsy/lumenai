@@ -36,6 +36,7 @@ This command does NOT produce an implementation plan. It improves the PRD so tha
 This command reads and rewrites a PRD. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
 
 **Document types touched:** `requirements` (read and write)
+**Active-epic fallback.** When no explicit path argument is given, resolve in this order: explicit argument → `.synthex/active-epic.json` → `documents.*` from config. Under the `notion` backend with more than one epic available, **stop** rather than falling through to config — defaulting to `main.md` on a multi-epic project is how someone operates on another initiative. Name the epic in your first line of output so a run is never ambiguous about which initiative it touched. See [`use-epic.md`](./use-epic.md).
 
 **When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `requirements_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
 

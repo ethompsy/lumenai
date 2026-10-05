@@ -40,11 +40,14 @@ The design commitment: **source documents change what the interview is about; th
 Resolve it in this order, first match wins:
 
 1. `--epic`, when supplied — a page URL or id.
-2. The existing PRD's `**Epic:**` link, when re-running against a PRD that already has one.
-3. `notion.epic.value` from config — a default that single-initiative projects may set, and that multi-initiative repos are advised to leave null.
-4. **Ask.** Search `notion.epics_database` and present the candidates for the user to pick. Never auto-select, even on a single match — confirm it. Offer to create an epic row only if the user asks, and then only with a title.
+2. The active epic in `.synthex/active-epic.json`, set by `/synthex:use-epic`. Per-developer and gitignored, which is how a shared config supports a team working different epics.
+3. The existing PRD's `**Epic:**` link, when re-running against a PRD that already has one.
+4. `notion.epic.value` from config — a default that single-initiative projects may set, and that multi-initiative repos are advised to leave null.
+5. **Ask.** Search `notion.epics_database` and present the candidates for the user to pick. Never auto-select, even on a single match — confirm it. Offer to create an epic row only if the user asks, and then only with a title.
 
 Verify the resolved epic by fetching it. If it cannot be fetched, report `target_not_found` with the value echoed back and re-ask rather than proceeding with an unverified anchor.
+
+**Record it as the active epic.** Write `.synthex/active-epic.json` with the resolved reference and this initiative's document paths, so subsequent commands need no `--epic` and no explicit paths. An initiative begins here, so activating it separately beforehand would be redundant.
 
 Hold the resolved reference for the rest of the run. It anchors the epic page (Step 5), parents the PRD subpage (Step 9), and is written into the PRD as its `**Epic:**` link so `write-implementation-plan` inherits it rather than asking again.
 
