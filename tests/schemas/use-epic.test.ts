@@ -106,6 +106,101 @@ describe('/synthex:use-epic', () => {
     });
   });
 
+  describe('Document resolution is per type and backend-aware', () => {
+    // Regression: Step 5 resolved only on the filesystem. Under
+    // backend_overrides: {requirements: notion} it scanned directories that
+    // will never hold the document, then manufactured a <dir>/<slug>.md path
+    // and persisted it — so every downstream command pointed at a file that
+    // cannot exist, while the real PRD sat in Notion.
+
+    it('resolves per document type, not once for all', () => {
+      expect(cmd).toMatch(/Resolve \*\*per document type\*\*, not once for all of them/);
+      expect(cmd).toMatch(/can route to different backends/);
+    });
+
+    it('honours the contract resolution order', () => {
+      expect(cmd).toMatch(
+        /`documents\.backend_overrides\.<type>` → `documents\.backend` → `filesystem`/,
+      );
+    });
+
+    it('has a Notion branch that does not scan or slug', () => {
+      expect(cmd).toMatch(/^#### Notion-routed types$/m);
+      expect(cmd).toMatch(/is never on disk/);
+      expect(cmd).toMatch(/Do not scan directories, and do not apply the slug convention/);
+    });
+
+    it('prefers the navigation block, then child pages', () => {
+      const notion = cmd.split('#### Notion-routed types')[1]?.split('#### Filesystem')[0] ?? '';
+      expect(notion).toMatch(/`## Where the detail lives` block/);
+      expect(notion).toMatch(/prefer it/);
+      expect(notion).toMatch(/epic row's child pages/);
+      expect(notion).toMatch(/Product Requirements/);
+      expect(notion).toMatch(/Implementation Plan/);
+    });
+
+    it('treats multiple matching child pages as ambiguous', () => {
+      const notion = cmd.split('#### Notion-routed types')[1]?.split('#### Filesystem')[0] ?? '';
+      expect(notion).toMatch(/report it rather than choosing/);
+    });
+
+    it('records a page ID under notion, citing the contract', () => {
+      expect(cmd).toMatch(/Record the resolved \*\*page ID\*\*/);
+      expect(cmd).toMatch(/contract §2 a handle is a repo-relative path under `filesystem` but a \*\*page ID\*\* under `notion`/);
+    });
+
+    it('keeps the filesystem branch intact', () => {
+      const fs = cmd.split('#### Filesystem-routed types')[1]?.split('#### Both branches')[0] ?? '';
+      expect(fs).toMatch(/`\*\*Epic:\*\*` link resolves to this epic/);
+      expect(fs).toMatch(/<dir>\/<slug>\.md/);
+    });
+
+    it('only reports missing after checking the right backend', () => {
+      expect(cmd).toMatch(
+        /A type reported as missing must have been checked against the backend it actually routes to/,
+      );
+      expect(cmd).toMatch(/confidently wrong and it gets written into state/);
+    });
+
+    it('Step 2 reports per backend rather than from a directory scan', () => {
+      const step2 = cmd.split('### 2. No Argument')[1]?.split('### 3.')[0] ?? '';
+      expect(step2).toMatch(/per type, against the backend that type actually routes to/);
+      expect(step2).toMatch(/Reporting from a directory scan alone would show Notion-backed documents as missing/);
+      expect(step2).toMatch(/only correct when every type has been checked against its own backend/);
+    });
+  });
+
+  describe('Stored handles are self-describing', () => {
+    it('records backend, handle, and existence per type', () => {
+      const state = cmd.split('## State File')[1]?.split('## Workflow')[0] ?? '';
+      expect(state).toMatch(/"schema_version": 2/);
+      expect(state).toMatch(/"backend": "notion"/);
+      expect(state).toMatch(/"backend": "filesystem"/);
+      expect(state).toMatch(/"handle"/);
+      expect(state).toMatch(/"exists"/);
+    });
+
+    it('shows both handle forms, so the model is not path-only', () => {
+      const state = cmd.split('## State File')[1]?.split('## Workflow')[0] ?? '';
+      expect(state).toMatch(/a1b2c3d4-5678-90ab-cdef-1234567890ab/);
+      expect(state).toMatch(/docs\/plans\/billing\.md/);
+    });
+
+    it('explains why a bare string would be unsafe', () => {
+      expect(cmd).toMatch(/The two are not interchangeable/);
+      expect(cmd).toMatch(/guessing wrong means handing a page ID to the filesystem/);
+    });
+
+    it('re-resolves when the recorded backend no longer matches config', () => {
+      expect(cmd).toMatch(/\*\*re-resolve rather than using the stored handle\.\*\*/);
+      expect(cmd).toMatch(/A page ID interpreted as a path is a missing file/);
+    });
+
+    it('treats pre-v2 state as unresolved', () => {
+      expect(cmd).toMatch(/Treat a `schema_version` below 2 as unresolved and re-resolve/);
+    });
+  });
+
   describe('Switching never touches the working tree', () => {
     it('creates no documents', () => {
       expect(cmd).toMatch(/\*\*Do not create any document\.\*\*/);
@@ -128,6 +223,19 @@ describe('/synthex:use-epic', () => {
       const rules = cmd.split('## Behavioral Rules')[1] ?? '';
       expect(rules).toMatch(/Never write a document/);
     });
+
+    it('forbids cross-backend conventions and unchecked missing reports', () => {
+      const rules = cmd.split('## Behavioral Rules')[1] ?? '';
+      expect(rules).toMatch(/Never apply a filesystem convention to a Notion-routed type/);
+      expect(rules).toMatch(/Never report a document missing without checking its own backend/);
+    });
+
+    it('numbers its behavioral rules contiguously', () => {
+      const rules = cmd.split('## Behavioral Rules')[1]?.split('## Source Authority')[0] ?? '';
+      const nums = [...rules.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
+      expect(nums.length).toBeGreaterThan(0);
+      expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
+    });
   });
 
   describe('Resolution refuses to guess', () => {
@@ -145,7 +253,7 @@ describe('/synthex:use-epic', () => {
     });
 
     it('prefers a document that declares the epic over a slug convention', () => {
-      expect(cmd).toMatch(/This is authoritative: the document itself says which epic it belongs to/);
+      expect(cmd).toMatch(/Authoritative: the document itself says which epic it belongs to/);
     });
   });
 

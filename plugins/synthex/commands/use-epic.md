@@ -21,14 +21,30 @@ This exists because `.synthex/config.yaml` is **committed and shared**. It holds
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "ref": "https://www.notion.so/<epic-row-id>",
   "label": "Billing Migration",
-  "requirements": "docs/reqs/billing.md",
-  "plan": "docs/plans/billing.md",
+  "documents": {
+    "requirements": {
+      "backend": "notion",
+      "handle": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+      "exists": true
+    },
+    "implementation_plan": {
+      "backend": "filesystem",
+      "handle": "docs/plans/billing.md",
+      "exists": false
+    }
+  },
   "updated_at": "2026-10-05T14:02:11Z"
 }
 ```
+
+**A handle's form depends on its backend.** Per [§2 of the contract](../agents/_shared/document-store-contract.md), a handle is a repo-relative path under `filesystem` and a **page ID** under `notion`. The two are not interchangeable, so each entry records which backend produced it — a bare string would leave a consumer guessing, and guessing wrong means handing a page ID to the filesystem.
+
+That also makes the state self-correcting. When an entry's recorded `backend` no longer matches what `documents.backend_overrides.<type>` → `documents.backend` resolves to — because someone changed the config — **re-resolve rather than using the stored handle.** A page ID interpreted as a path is a missing file; a path interpreted as a page ID is a failed fetch. Both are confusing in ways the recorded backend makes avoidable.
+
+Treat a `schema_version` below 2 as unresolved and re-resolve: v1 stored bare paths with no backend, so its handles cannot be interpreted safely.
 
 It is a **separate file rather than a key in `.synthex/state.json`** for a concrete reason: `scripts/upgrade-nudge.sh` rebuilds `state.json` from a fixed set of fields on every version bump, so anything else stored there is erased. Do not move this into `state.json`.
 
@@ -48,18 +64,22 @@ If not, say so and stop — there are no epics to activate, and commands should 
 
 Read `.synthex/active-epic.json` if present, then query `notion.epics_database`.
 
+Resolve each epic's documents using Step 5 — **per type, against the backend that type actually routes to.** Reporting from a directory scan alone would show Notion-backed documents as missing.
+
+Show the backend alongside each document, since a page ID and a path are not interchangeable and a reader needs to know which they are looking at:
+
 ```
 Active epic: Billing Migration
-  requirements  docs/reqs/billing.md
-  plan          docs/plans/billing.md
+  requirements  notion      Product Requirements      (a1b2c3d4…)
+  plan          notion      Implementation Plan       (e5f6a7b8…)
 
 Available:
-  Billing Migration        (active)
-  Checkout Revamp          docs/reqs/checkout.md · docs/plans/checkout.md
-  Platform Hardening       no documents yet
+  Billing Migration         (active)
+  Checkout Revamp           requirements: notion · plan: filesystem docs/plans/checkout.md
+  Platform Hardening        no documents yet
 ```
 
-With no active epic, say so and list what is available. Do not pick one.
+"no documents yet" is only correct when every type has been checked against its own backend. With no active epic, say so and list what is available. Do not pick one.
 
 ### 3. `--clear`
 
@@ -80,14 +100,34 @@ Nothing found → report it with the input echoed back, list the available epics
 
 ### 5. Resolve Its Documents
 
-Determine the requirements and plan paths for this epic, in order:
+Resolve **per document type**, not once for all of them. `requirements` and `implementation_plan` can route to different backends, so a single resolution strategy is wrong for at least one of them.
 
-1. An existing document whose `**Epic:**` link resolves to this epic — scan `documents.requirements`' directory and `documents.implementation_plan`' directory for a match. This is authoritative: the document itself says which epic it belongs to.
-2. Convention: `<reqs dir>/<slug>.md` and `<plans dir>/<slug>.md`, where `slug` is the epic's title lowercased with non-alphanumerics collapsed to hyphens.
+For each type, first resolve its backend using the contract's order — `documents.backend_overrides.<type>` → `documents.backend` → `filesystem` — then use the matching branch.
 
-Record whichever resolved, and whether the file currently exists.
+#### Notion-routed types
 
-**Do not create any document.** Switching epics changes which epic is active and nothing else — it never writes to the working tree, so it is safe to do freely and safe to undo. Creating a document is `write-prd`'s job, and it is the step that actually puts content in one.
+The document is a subpage of the epic row and **is never on disk**. Do not scan directories, and do not apply the slug convention: both are filesystem concepts, and a manufactured local path for a document that lives in Notion is a guaranteed-wrong answer written into durable state.
+
+Resolve in this order:
+
+1. **The epic page's `## Where the detail lives` block.** When the epic has been standardized, that block names its requirements and plan explicitly, and Synthex maintains it. It is the cheapest and most reliable source — prefer it.
+2. **The epic row's child pages.** Fetch them and match the conventional title for the type: `Product Requirements`, `Implementation Plan`. More than one match is ambiguous — report it rather than choosing.
+3. **Genuinely absent.** Only now is the document "not yet created."
+
+Record the resolved **page ID**. Per contract §2 a handle is a repo-relative path under `filesystem` but a **page ID** under `notion`; storing a path here would be the wrong kind of handle.
+
+#### Filesystem-routed types
+
+1. **A document whose `**Epic:**` link resolves to this epic** — scan the directory named by `documents.<type>`. Authoritative: the document itself says which epic it belongs to.
+2. **Convention:** `<dir>/<slug>.md`, where `slug` is the epic's title lowercased with non-alphanumerics collapsed to hyphens.
+
+Record the repo-relative path.
+
+#### Both branches
+
+Record, per type, the backend used, the handle, and whether the document currently exists. A type reported as missing must have been checked against the backend it actually routes to — reporting "not yet created" for a substantial Notion page because a directory scan found nothing is worse than not reporting at all, because it is confidently wrong and it gets written into state.
+
+**Do not create any document.** Switching epics changes which epic is active and nothing else — it never writes to the working tree or to Notion, so it is safe to do freely and safe to undo. Creating a document is `write-prd`'s job, and it is the step that actually puts content in one.
 
 ### 6. Write and Confirm
 
@@ -126,10 +166,12 @@ Any command taking `requirements_path` or `implementation_plan_path` resolves in
 1. **Never write a document.** This command only ever changes which epic is active.
 2. **Never auto-select an ambiguous epic**, and confirm a single fuzzy match before activating.
 3. **Never store active-epic state in `.synthex/state.json`** — the upgrade-nudge hook rebuilds that file and would erase it.
-4. **Never derive a recorded path from a label after the fact.** Record paths at activation; a renamed epic must not silently repoint a stale slug.
-5. **Write atomically.** Temp file then rename.
-6. **Stay silent when the backend is off.** No epics means nothing to activate; it is not an error.
-7. **Do not chat.** Output is the status block.
+4. **Never derive a recorded path from a label after the fact.** Record handles at activation; a renamed epic must not silently repoint a stale slug.
+5. **Never apply a filesystem convention to a Notion-routed type.** Directory scans and `<dir>/<slug>.md` are filesystem concepts. A manufactured local path for a document that lives in Notion is wrong by construction, and writing it into durable state points every downstream command at a file that will never exist.
+6. **Never report a document missing without checking its own backend.** "Not yet created" for a substantial Notion page is worse than silence: it is confidently wrong, and it gets persisted.
+7. **Write atomically.** Temp file then rename.
+8. **Stay silent when the backend is off.** No epics means nothing to activate; it is not an error.
+9. **Do not chat.** Output is the status block.
 
 ## Source Authority
 
