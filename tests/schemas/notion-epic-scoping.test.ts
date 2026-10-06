@@ -165,9 +165,9 @@ describe('FR-NB4: epic scoping', () => {
       expect(rules).toMatch(/A null default \*value\* is fine/);
     });
 
-    it('forbids deriving a epic value', () => {
+    it('forbids deriving an epic value', () => {
       const rules = wizard.split('## Behavioral Rules')[1] ?? '';
-      expect(rules).toMatch(/Never derive a epic value/);
+      expect(rules).toMatch(/Never derive an epic value/);
       expect(rules).toMatch(/empty queue that reads as "all work complete/);
     });
   });

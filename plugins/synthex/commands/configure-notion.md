@@ -330,7 +330,7 @@ Re-run /synthex:configure-notion any time to change this, or to disable it.
 1. **Never auto-select a target.** Ambiguous search results are presented, not resolved.
 2. **Never change a schema without explicit confirmation**, and default that confirmation to no.
 3. **Never enable tasks unscoped.** No epic property means documents-only configuration. A null default *value* is fine — plans supply their own.
-4. **Never derive a epic value.** Not from a repo name, a branch, or a plan filename. A value matching no rows yields an empty queue that reads as "all work complete."
+4. **Never derive an epic value.** Not from a repo name, a branch, or a plan filename. A value matching no rows yields an empty queue that reads as "all work complete."
 5. **Never write credentials to config.**
 6. **Verify every target by fetching it** before writing it to config.
 7. **Show degradations plainly.** The user should finish this wizard knowing exactly which fields are not queryable.
