@@ -54,7 +54,7 @@ Every task in the implementation plan must have acceptance criteria. Each criter
 
 This command a PRD and writes an implementation plan. When the Notion backend is enabled for those document types, resolve them through the document-store contract rather than reading the path parameters directly. The mechanical framework — backend resolution order, delegation to `notion-document-store` and `notion-task-store`, response handling, and the strict-mode vs. fail-soft degradation policy — lives once in [`plugins/synthex/docs/document-backends.md`](../docs/document-backends.md). Only the command-specific bits are inlined below.
 
-**Document types touched:** `requirements` (read), `specs` (read), `implementation_plan` (write)
+**Document types touched:** `requirements` (read), `specs` (read), `implementation_plan` (write), `epic_page` (**patch**, Notion only — milestone attribution on the `What changes` diagram, Step 8.5)
 
 **When `notion.enabled` is `false` — the default — skip this section entirely** and resolve `requirements_path`, `specs_path`, `plan_path` directly against the filesystem exactly as the Workflow below describes. The disabled path must stay byte-identical to pre-Notion behavior (FR-NB2), and the surest way to guarantee that is to run no new logic at all.
 
@@ -87,6 +87,7 @@ This command a PRD and writes an implementation plan. When the Notion backend is
   Ask the user only when the PRD has no `**Epic:**` link — for a PRD written before this convention, or on a plan with no PRD. Then search the epics database by title and let them pick. Do not create an epic row unless the user asks — an epics row usually carries owner, dates, and business context that this command has no basis to fill in. Do not derive a value from a filename or branch: one matching no rows yields an empty task queue that reads as "all work complete." For a `select` or text epic property, a plain name is correct and no link is needed.
 - Create task rows with the canonical status `pending`, stamped with that epic value. The adapter translates the status to whatever the target database calls it.
 - When the task database has no property mapped for `complexity`, `milestone`, or `dependencies`, the adapter reports a degradation and that data belongs in the overview page instead. Keep it in the plan prose rather than inventing a property for it.
+- **Milestone attribution on the epic's `What changes` diagram is this command's to maintain**, because it derives from the phasing decided here. Step 8.5 patches it. Attribution only — never progress.
 - The `plan-linter` structural audit in Step 5.5 runs against the **draft markdown**, before any backend write. It is unaffected by this section.
 
 ## Workflow
@@ -359,6 +360,21 @@ After the peer review loop completes, the Product Manager does a final compactne
 ### 8. Write the Plan
 
 Write the finalized implementation plan to `@{plan_path}`.
+
+### 8.5. Refresh the Epic's Milestone Attribution (Notion only)
+
+Skip this step entirely unless the resolved backend for `epic_page` is `notion`.
+
+The epic page's `## What changes` section labels new or changed components with the milestone that delivers them — `Gateway (M1)`. Those labels are attribution, and attribution comes from the phasing you just decided, so this command owns them. Refresh them here, after the plan is written, via `notion-document-store` `patch` scoped to `## What changes`.
+
+- **No `What changes` section, or no `after` diagram** — do nothing. Do not create one. A diagram has to be grounded in the system it describes, and that grounding happened during `/synthex:write-prd` discovery; drawing one from a plan alone is the fabrication that step is written to prevent.
+- **Labels absent** (the first plan for this epic) — add them to the components the plan delivers, and leave every other component unlabelled.
+- **Labels present but phasing changed** — update them to match. This is the whole reason the step exists: a diagram that disagrees with the plan is worse than one with no labels, because it looks authoritative.
+- **A plan milestone maps to no component on the diagram** — leave the diagram alone and report it. It usually means the work is not architectural, which is fine; occasionally it means the diagram is incomplete, which is the user's call to make, not yours.
+
+**Quote any label you add a milestone to.** Mermaid will not parse parentheses in an unquoted node label: `G[Gateway (M1)]` is a syntax error and silently renders nothing, while `G["Gateway (M1)"]` is correct. Adding attribution to a previously unlabelled node therefore means adding the quotes at the same time — verified against the mermaid parser, not assumed.
+
+**Never write progress into these labels.** No checkmarks, dates, counts, percentages, or "in progress" — attribution only. That constraint is what keeps the section free of status and therefore free of staleness, and it is why `next-priority` never has to touch it.
 
 ### 9. Update Project Files
 

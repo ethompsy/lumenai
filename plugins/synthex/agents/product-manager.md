@@ -98,6 +98,25 @@ personas stay in the PRD.]
 
 *Maintained by Synthex — edits here are overwritten.*
 
+## What changes
+**Today**
+```mermaid
+graph LR
+  A[Client] --> B[API]
+  B --> C[(Postgres)]
+```
+*Read off: [the source document, the codebase, or the answer this was drawn from]*
+
+**After this epic**
+```mermaid
+graph LR
+  A[Client] --> G["Gateway (M1)"]
+  G --> B[API]
+  B --> C[(Postgres)]
+  B --> D["Cache (M2)"]
+```
+*New or changed components carry the milestone that delivers them. Unlabelled components are unchanged.*
+
 ## How we'll know it worked
 [Success measures — measurable, not aspirational]
 
@@ -117,9 +136,32 @@ Two things went wrong, and the layout addresses each.
 
 **Detail read as freshness.** Volume of detail looks like maintenance, so a reader stops looking for something newer. The `Current state` column carries that signal explicitly instead, and the disclaimer names the inference not to make. Write it verbatim; its bluntness is the point.
 
+### Why `What changes` carries diagrams, and the one milestone exception
+
+Prose describes a change; a diagram lets a reader *see* it. Two diagrams rather than one, because the value is in the delta — a target-state picture alone leaves the reader to reconstruct what was there before, which is the part they already half-know and half-misremember.
+
+This is also the section a stakeholder can act on without reading anything else, which is why it sits above `How we'll know it worked`. It stays below the navigation block, though: the block has to be the first thing a skimmer meets, and a diagram is exactly the kind of content that stops a skim.
+
+**The milestone labels are the one apparent breach of the no-volatile-content rule, and they are not one.** The distinction is between attribution and progress:
+
+| | | On the epic page |
+|---|---|---|
+| **Attribution** | *which* milestone delivers a component | **Allowed** — it is the shape of the sequencing decision, and it changes only when the plan is re-phased |
+| **Progress** | whether that milestone is done, started, or late | **Forbidden** — this is status, and it is the staleness failure exactly |
+
+So `Gateway (M1)` is fine and `Gateway (M1 ✅ shipped)` is not. No checkmarks, no dates, no counts, no percentages, no "in progress".
+
+**The quotes in `"Gateway (M1)"` are load-bearing.** Mermaid rejects parentheses in an unquoted node label, so `G[Gateway (M1)]` is a parse error that renders as nothing at all. Adding attribution to a previously unlabelled node means adding the quotes in the same edit.
+
+Two things follow from holding that line. Attribution derives from the plan, so **Synthex owns these labels** and `write-implementation-plan` refreshes them whenever it changes phasing — the diagram cannot drift from the plan, because the command that re-phases the plan updates the diagram. And because no progress ever appears here, `next-priority` has nothing to refresh, so the section costs nothing per run. Banning progress marks is what buys that.
+
+**A diagram must be earned.** The `Today` diagram is a claim about a system that already exists, so it has to be read off something real — a supplied document, the codebase, or an answer you were given — and the italic basis line records which. Where it cannot be grounded, ask; do not draw. The `After this epic` diagram follows from decided scope, and where scope does not determine a component, leave the component out rather than inventing one. A fabricated architecture diagram is worse than no diagram: it renders cleanly, it reads as authoritative, and nobody checks a picture.
+
+**Omit the section when the initiative does not change system shape.** Plenty do not — a content, pricing, or process initiative has no before-and-after topology. Say so rather than drawing something decorative to fill the slot.
+
 ### Phases and other volatile content
 
-Phases, milestones, status, and counts do **not** belong on the epic page. They are mid-volatility at best, and putting them on the landing page is the failure above.
+Phases, milestones, status, and counts do **not** belong on the epic page. They are mid-volatility at best, and putting them on the landing page is the failure above. The sole exception is the milestone *attribution* carried by `What changes` diagram labels, bounded as described above — a phase schedule is still out of bounds.
 
 They belong in the **plan**, which holds every phase at two resolutions: all phases named with their outcome, and only committed phases decomposed into tasks. Detail follows commitment — decomposing work nobody has committed to is waterfall, and a plan that lists only the committed phases looks incomplete when it is merely honest.
 
@@ -156,6 +198,12 @@ The PRD has two shapes, determined by whether an epic page exists to hold the wh
 
 ## 1. Vision & Purpose
 [Why this product exists, what problem it solves, strategic importance]
+
+### What changes
+[Two mermaid diagrams — the system today, then after this work, with new or
+changed components carrying the milestone that delivers them. Same rules and
+same earned-diagram standard as the epic page's section of this name. Omit
+when the work does not change system shape.]
 
 ## 2. Target Users / Personas
 [Who this is for, their pain points, what they need]
@@ -194,6 +242,8 @@ The PRD has two shapes, determined by whether an epic page exists to hold the wh
 Sections 1, 5, and 6 move to the epic page, because that is where stakeholders arrive and they are the slowest-changing content. **Target Users stays here**: the epic page carries the audience as a clause in its why, while detailed personas are requirements context and belong with the requirements.
 
 Open with a link to the epic, drop the three moved sections, and renumber. Everything else is identical.
+
+`What changes` travels with section 1, since it is nested inside it — under this shape the diagrams live on the epic page and the PRD does not restate them. Its heading level differs by backend for a reason: on the epic page it must be a top-level section, because nesting it under `Why this exists` would push the navigation block below the fold, and the block has to be the first thing a skimmer meets. A PRD has no such constraint, so there the diagrams sit inside the vision they illustrate.
 
 ```markdown
 # Product Requirements Document: [Product Name]

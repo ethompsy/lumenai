@@ -71,6 +71,7 @@ This command reads the implementation plan's task queue and writes task state ba
   > `This epic's body isn't in standard epic-page shape, so there's no navigation block to refresh. Run /synthex:write-prd --epic-only to standardize it.`
 
   Restructuring a free-form epic body is a decision for `write-prd`, where the user is present to approve the mapping. Silently reshaping someone's page mid-run is exactly the failure the refine-don't-discard rule exists to prevent, and a task-execution command is the wrong place to make that call.
+- **Do not touch the epic's `## What changes` diagrams.** Their milestone labels record *which* milestone delivers a component, not whether it is done, and `write-implementation-plan` maintains them from the plan's phasing. Writing progress into them — a checkmark, a count, a date — would put status back on the landing page, which is the staleness failure the epic format was designed against. The navigation block above is where this run's progress belongs, and it is the only place on the page that carries any.
 
 ## Workflow
 

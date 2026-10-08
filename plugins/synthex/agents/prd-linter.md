@@ -74,15 +74,23 @@ You lint two document types. Which rubric applies is determined by the `document
 | The summary-not-the-plan disclaimer present, verbatim | HIGH | It names the exact wrong inference; paraphrase dilutes it |
 | Sections appear in the standard order | MEDIUM | The format is standardized so any reader knows where to look |
 | `*Maintained by Synthex*` marker present | MEDIUM | Tells a human the block is machine-owned |
-| No section beyond the standard four plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
+| No section beyond the standard five plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
+| `## What changes` present | MEDIUM | A reader sees a change far faster than they read one. MEDIUM, not HIGH, because some initiatives genuinely change no system shape — a check that blocked would push toward drawing something decorative |
+| When present: both a **today** and an **after** diagram | HIGH | The value is the delta; a target state alone leaves the reader to reconstruct the present from memory |
+| When present: each diagram is a fenced ```mermaid block | HIGH | Anything else renders as literal text in Notion and on GitHub |
+| When present: the today diagram carries an italic basis line | HIGH | It is a claim about a system that already exists, and an ungrounded one is the fabrication this rubric exists to catch |
+| `## What changes` sits after `## Where the detail lives` and before `## How we'll know it worked` | MEDIUM | Diagrams stop a skim, so they must not precede the navigation block |
 
 **Volatile content outside the navigation block:**
 
 | Check | Severity | Rationale |
 |-------|----------|-----------|
 | No status, date, count, task, or milestone outside `## Where the detail lives` | **CRITICAL** | An epic body is skimmed. Volatile content there ages into a confident-looking lie, which is precisely how a stale epic once got read as the live plan. |
+| No progress marker on a `What changes` diagram label — no checkmark, date, count, percentage, or "in progress" | **CRITICAL** | Same failure, same severity. Attribution is exempt; progress is not |
 
 Flag a violation with the offending text quoted and the artifact it belongs in — the plan for anything milestone- or task-shaped, the work items for anything status-shaped. Do not move it yourself; report it.
+
+**One exemption, and only one.** A milestone label inside a `What changes` diagram — `Gateway (M1)` — records *which* milestone delivers a component. That is attribution: it describes the sequencing decision, changes only when the plan is re-phased, and is maintained by `write-implementation-plan`. It is not a violation, and flagging it is a false positive. `Gateway (M1 ✅ shipped)` **is** a violation, because it states progress. The test is whether the label would go stale on its own: attribution will not, progress will.
 
 **When the epic page was refined from pre-existing content**, one check outranks the rest:
 

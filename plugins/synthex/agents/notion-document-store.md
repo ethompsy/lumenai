@@ -110,6 +110,8 @@ If resolution yields nothing, return `error_code: target_not_found` with an `err
 
 **Conflict rule.** When the caller supplies `version`, re-read the page's `last_edited_time` before writing. If it differs, abort with `error_code: conflict` and do **not** write. A human editing a Notion page while Synthex works is routine, not exceptional — losing their edit is a real cost, and the caller can re-read and re-apply.
 
+**Fenced code blocks pass through verbatim, language tag included.** Epic pages and PRDs carry ```mermaid blocks that Notion renders as diagrams, and the language tag is what makes that happen — drop it and the diagram degrades into a wall of literal text on the page a stakeholder lands on. Never reformat, re-indent, prettify, or "fix" the contents of a fenced block in either direction: mermaid is whitespace- and syntax-sensitive, and a well-meant tidy is enough to stop it rendering. On `read`, return the fence and its tag intact so a caller patching one section does not silently rewrite another.
+
 **Truncation rule.** The MCP's fetch may truncate large pages. Check the response's truncation indicators; if the content came back incomplete, return `error_code: unknown_error` with an `error_message` saying so rather than handing the caller a partial document it will treat as whole and then overwrite.
 
 ### Step 3 — Never Mutate Structure
@@ -157,6 +159,7 @@ Return the response envelope from §7 of the contract. Set `backend: "notion"`. 
 6. **Return errors; do not prompt.** You have no user. Missing configuration is `target_not_found`, not a question.
 7. **Do not retry terminal errors.** `mcp_unavailable`, `notion_auth_failed`, `target_not_found`, `permission_denied`, and `schema_mismatch` are terminal. Retry only `rate_limited`, once, with backoff.
 8. **Stay mechanical.** You do not summarize, improve, reformat, or editorialize document content. Markdown in, markdown out.
+9. **Never drop or alter a fenced code block's language tag, and never reformat its contents.** A ```mermaid block is what renders a diagram on an epic page; stripping the tag or tidying the body turns it into literal text in front of the stakeholders the page exists for.
 
 ---
 

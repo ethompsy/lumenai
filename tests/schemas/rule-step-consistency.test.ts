@@ -100,6 +100,12 @@ const REGISTRY: Record<string, Anchor[]> = {
       enforcedIn: '### Step 3 — Never Mutate Structure',
       proof: /rename, move, archive, or delete any pre-existing page/,
     },
+    {
+      rule: /Never drop or alter a fenced code block's language tag/,
+      enforcedIn: '### Step 2 — Perform the Operation',
+      proof: /\*\*Fenced code blocks pass through verbatim, language tag included\.\*\*/,
+      forbidden: /strip the (?:language )?tag|normalize the fence/i,
+    },
   ],
 
   'agents/notion-task-store.md': [
