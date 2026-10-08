@@ -98,25 +98,6 @@ personas stay in the PRD.]
 
 *Maintained by Synthex — edits here are overwritten.*
 
-## What changes
-**Today**
-```mermaid
-graph LR
-  A[Client] --> B[API]
-  B --> C[(Postgres)]
-```
-*Read off: [the source document, the codebase, or the answer this was drawn from]*
-
-**After this epic**
-```mermaid
-graph LR
-  A[Client] --> G["Gateway (M1)"]
-  G --> B[API]
-  B --> C[(Postgres)]
-  B --> D["Cache (M2)"]
-```
-*New or changed components carry the milestone that delivers them. Unlabelled components are unchanged.*
-
 ## How we'll know it worked
 [Success measures — measurable, not aspirational]
 
@@ -136,32 +117,9 @@ Two things went wrong, and the layout addresses each.
 
 **Detail read as freshness.** Volume of detail looks like maintenance, so a reader stops looking for something newer. The `Current state` column carries that signal explicitly instead, and the disclaimer names the inference not to make. Write it verbatim; its bluntness is the point.
 
-### Why `What changes` carries diagrams, and the one milestone exception
-
-Prose describes a change; a diagram lets a reader *see* it. Two diagrams rather than one, because the value is in the delta — a target-state picture alone leaves the reader to reconstruct what was there before, which is the part they already half-know and half-misremember.
-
-This is also the section a stakeholder can act on without reading anything else, which is why it sits above `How we'll know it worked`. It stays below the navigation block, though: the block has to be the first thing a skimmer meets, and a diagram is exactly the kind of content that stops a skim.
-
-**The milestone labels are the one apparent breach of the no-volatile-content rule, and they are not one.** The distinction is between attribution and progress:
-
-| | | On the epic page |
-|---|---|---|
-| **Attribution** | *which* milestone delivers a component | **Allowed** — it is the shape of the sequencing decision, and it changes only when the plan is re-phased |
-| **Progress** | whether that milestone is done, started, or late | **Forbidden** — this is status, and it is the staleness failure exactly |
-
-So `Gateway (M1)` is fine and `Gateway (M1 ✅ shipped)` is not. No checkmarks, no dates, no counts, no percentages, no "in progress".
-
-**The quotes in `"Gateway (M1)"` are load-bearing.** Mermaid rejects parentheses in an unquoted node label, so `G[Gateway (M1)]` is a parse error that renders as nothing at all. Adding attribution to a previously unlabelled node means adding the quotes in the same edit.
-
-Two things follow from holding that line. Attribution derives from the plan, so **Synthex owns these labels** and `write-implementation-plan` refreshes them whenever it changes phasing — the diagram cannot drift from the plan, because the command that re-phases the plan updates the diagram. And because no progress ever appears here, `next-priority` has nothing to refresh, so the section costs nothing per run. Banning progress marks is what buys that.
-
-**A diagram must be earned.** The `Today` diagram is a claim about a system that already exists, so it has to be read off something real — a supplied document, the codebase, or an answer you were given — and the italic basis line records which. Where it cannot be grounded, ask; do not draw. The `After this epic` diagram follows from decided scope, and where scope does not determine a component, leave the component out rather than inventing one. A fabricated architecture diagram is worse than no diagram: it renders cleanly, it reads as authoritative, and nobody checks a picture.
-
-**Omit the section when the initiative does not change system shape.** Plenty do not — a content, pricing, or process initiative has no before-and-after topology. Say so rather than drawing something decorative to fill the slot.
-
 ### Phases and other volatile content
 
-Phases, milestones, status, and counts do **not** belong on the epic page. They are mid-volatility at best, and putting them on the landing page is the failure above. The sole exception is the milestone *attribution* carried by `What changes` diagram labels, bounded as described above — a phase schedule is still out of bounds.
+Phases, milestones, status, and counts do **not** belong on the epic page. They are mid-volatility at best, and putting them on the landing page is the failure above.
 
 They belong in the **plan**, which holds every phase at two resolutions: all phases named with their outcome, and only committed phases decomposed into tasks. Detail follows commitment — decomposing work nobody has committed to is waterfall, and a plan that lists only the committed phases looks incomplete when it is merely honest.
 
@@ -199,16 +157,32 @@ The PRD has two shapes, determined by whether an epic page exists to hold the wh
 ## 1. Vision & Purpose
 [Why this product exists, what problem it solves, strategic importance]
 
-### What changes
-[Two mermaid diagrams — the system today, then after this work, with new or
-changed components carrying the milestone that delivers them. Same rules and
-same earned-diagram standard as the epic page's section of this name. Omit
-when the work does not change system shape.]
-
 ## 2. Target Users / Personas
 [Who this is for, their pain points, what they need]
 
-## 3. Functional Requirements
+## 3. Current and Target State
+[Two mermaid diagrams: the system today, then the system once this is
+delivered. No milestones — sequencing belongs to the implementation plan.
+Omit this section when the work changes no system shape.]
+
+**Today**
+```mermaid
+graph LR
+  A[Client] --> B[API]
+  B --> C[(Postgres)]
+```
+*Read off: [the source document, the codebase, or the answer this was drawn from]*
+
+**Once delivered**
+```mermaid
+graph LR
+  A[Client] --> G[Gateway]
+  G --> B[API]
+  B --> C[(Postgres)]
+  B --> D[Cache]
+```
+
+## 4. Functional Requirements
 ### Theme: [Name]
 #### FR-[ID]: [Requirement Title] `[S]`
 [Description]
@@ -216,22 +190,22 @@ when the work does not change system shape.]
 **Acceptance Criteria:**
 - [Specific, testable criteria]
 
-## 4. Non-Functional Requirements
+## 5. Non-Functional Requirements
 [Performance, security, accessibility, scalability — each tagged]
 
-## 5. Out of Scope
+## 6. Out of Scope
 [Explicitly what we are NOT building in this version]
 
-## 6. Success Metrics
+## 7. Success Metrics
 [How we measure whether this is successful]
 
-## 7. Assumptions & Constraints
+## 8. Assumptions & Constraints
 [What we're assuming, what limits us]
 
-## 8. Open Questions
+## 9. Open Questions
 [Anything unresolved. A question belongs here rather than being answered by invention.]
 
-## 9. Source Map
+## 10. Source Map
 | Document | Contributed |
 |----------|-------------|
 | [path or URL] | [which requirements came from it] |
@@ -239,11 +213,9 @@ when the work does not change system shape.]
 
 ### Notion backend — requirements, with the why on the epic page
 
-Sections 1, 5, and 6 move to the epic page, because that is where stakeholders arrive and they are the slowest-changing content. **Target Users stays here**: the epic page carries the audience as a clause in its why, while detailed personas are requirements context and belong with the requirements.
+Sections 1, 6, and 7 — Vision, Out of Scope, and Success Metrics — move to the epic page, because that is where stakeholders arrive and they are the slowest-changing content. **Target Users stays here**: the epic page carries the audience as a clause in its why, while detailed personas are requirements context and belong with the requirements.
 
 Open with a link to the epic, drop the three moved sections, and renumber. Everything else is identical.
-
-`What changes` travels with section 1, since it is nested inside it — under this shape the diagrams live on the epic page and the PRD does not restate them. Its heading level differs by backend for a reason: on the epic page it must be a top-level section, because nesting it under `Why this exists` would push the navigation block below the fold, and the block has to be the first thing a skimmer meets. A PRD has no such constraint, so there the diagrams sit inside the vision they illustrate.
 
 ```markdown
 # Product Requirements Document: [Product Name]
@@ -253,14 +225,31 @@ Open with a link to the epic, drop the three moved sections, and renumber. Every
 **Provenance:** `[S]` sourced · `[U]` user-stated · `[D]` derived from the codebase · `[A]` assumed
 
 ## 1. Target Users / Personas
-## 2. Functional Requirements
-## 3. Non-Functional Requirements
-## 4. Assumptions & Constraints
-## 5. Open Questions
-## 6. Source Map
+## 2. Current and Target State
+## 3. Functional Requirements
+## 4. Non-Functional Requirements
+## 5. Assumptions & Constraints
+## 6. Open Questions
+## 7. Source Map
 ```
 
 Under this shape a PRD is not readable alone, and that is the accepted cost of having one authoritative home per fact. A copy of the why in both places would drift, and a reader would have no way to tell which was current.
+
+---
+
+## Current and Target State
+
+Prose describes a change; a diagram lets a reader *see* it. Both PRD shapes carry a `Current and Target State` section holding two mermaid diagrams — the system today, then the system once the work is delivered.
+
+Two diagrams rather than one, because the value is in the delta. A target-state picture alone leaves the reader to reconstruct what was there before, which is the part they already half-know and half-misremember.
+
+**No milestones here.** The PRD says what must become true; *how and in what order* is the implementation plan's question, and the plan carries its own `Target State by Milestone` diagram for it. The split is not tidiness: sequencing is re-decided every time the plan is re-phased, and a PRD does not get rewritten when that happens. A milestone-labelled diagram in a PRD is therefore stale the first time anyone reorders the work, while a scope-level diagram only changes when scope changes — which *does* rewrite the PRD.
+
+**A diagram must be earned.** The `Today` diagram is a claim about a system that already exists, so it has to be read off something real — a supplied document, the codebase, or an answer you were given — and the italic basis line records which. Where it cannot be grounded, ask; do not draw. The `Once delivered` diagram follows from decided scope, and where scope does not determine a component, leave the component out rather than inventing one. A fabricated architecture diagram is worse than no diagram: it renders cleanly, it reads as authoritative, and nobody checks a picture.
+
+**Omit the section when the work does not change system shape.** Plenty of initiatives do not — a content, pricing, or process change has no before-and-after topology. Say so rather than drawing something decorative to fill the slot.
+
+**Quote any node label containing parentheses.** Mermaid rejects them unquoted: `G[Gateway (new)]` is a parse error that renders as nothing at all, while `G["Gateway (new)"]` is correct. This matters most downstream, where the plan adds milestone suffixes to these same labels.
 
 ---
 
@@ -351,6 +340,20 @@ When asked to create or update an implementation plan:
 ## Overview
 [Brief summary linking back to PRD. 2-3 sentences max.]
 
+## Target State by Milestone
+[One mermaid diagram: the system once this plan is delivered, with new or
+changed components labelled with the milestone that delivers them. Derived
+from the PRD's `Current and Target State`. Omit when the PRD omitted it.]
+
+```mermaid
+graph LR
+  A[Client] --> G["Gateway (M1.1)"]
+  G --> B[API]
+  B --> C[(Postgres)]
+  B --> D["Cache (M1.2)"]
+```
+*New or changed components carry the milestone that delivers them. Unlabelled components are unchanged.*
+
 ## Decisions
 Major decisions made during planning that influence task structure.
 
@@ -383,6 +386,18 @@ Items requiring further discovery that could lead to future decisions and plan c
 ## Phase 2: [Name -- Delivers Y Value]
 ...
 ```
+
+### Target State by Milestone Section
+
+The PRD establishes *what* the system becomes; this section answers *in what order*. It takes the PRD's `Once delivered` diagram and labels each new or changed component with the milestone that delivers it, so a reader can see the sequencing against the topology rather than holding both in their head.
+
+**Attribution, never progress.** A label says *which* milestone delivers a component — `Gateway (M1.1)`. It never says whether that milestone is done, started, or late. Status already lives in the task tables, one row per task, and duplicating it here creates a second place to update and a second place to be wrong. `Gateway (M1.1)` is correct; `Gateway (M1.1 ✅)` is not.
+
+**This section is yours to keep current**, because re-phasing happens here. Whenever milestones are added, removed, merged, or reordered, update the labels in the same edit. A diagram that disagrees with the phase list beneath it is worse than one with no labels, because it looks authoritative.
+
+**Derive it; do not invent it.** When the PRD has no `Current and Target State` section, omit this one rather than drawing a target state from the task list. The PRD's diagram was grounded in the real system during discovery, and a plan is not a basis for claiming what the architecture looks like.
+
+**Quote labels containing parentheses** — `G["Gateway (M1.1)"]`. Mermaid rejects unquoted parens in a node label, so adding a milestone suffix to a previously bare label means adding the quotes in the same edit, or the diagram silently renders as nothing.
 
 ### Decisions Section
 

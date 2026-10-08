@@ -116,6 +116,14 @@ When you edit a task's wording, **keep the link and retarget only the label**: `
 
 A task you add on the PM's instruction has no work item yet and correctly has no link. Report it as a structural change (below) so the caller can create the row and add one.
 
+### Leave the `Target State by Milestone` diagram alone
+
+The plan may carry a mermaid diagram labelling components with the milestone that delivers them. Treat it as content you do not touch unless the PM's instruction names it explicitly.
+
+Two reasons it needs calling out. Mermaid is **whitespace- and syntax-sensitive**, so the reformatting you would safely apply to prose — re-wrapping, re-indenting, collapsing blank lines — can stop it rendering. And its labels encode *sequencing*, so renaming or renumbering a milestone elsewhere in the plan silently invalidates them.
+
+When an instruction renames, merges, or renumbers a milestone, apply the edit and then **report the diagram as needing attention** under "Could not apply" rather than updating the labels yourself. Deciding which component now belongs to which milestone is a planning judgement, not a mechanical edit.
+
 ### Report structural task changes explicitly
 
 You do not create, delete, or archive Notion rows — you have no storage access and no adapter. When an edit changes the **set** of tasks rather than their content, the caller has to propagate that to the task store, and it can only do so if you say what happened.
@@ -176,10 +184,11 @@ And return the input plan unchanged.
 4. **Never remove content that wasn't explicitly targeted.** If in doubt, keep it.
 5. **Maintain typed acceptance criteria tags.** Every criterion you add or modify must be tagged `[T]`, `[H]`, or `[O]` per the implementation plan template.
 6. **Preserve work-item links.** When a task cell is a markdown link, keep the target and edit only the label. Never strip one, never invent one.
-7. **Renumber consistently, but never treat a number as an identity.** When adding/removing tasks or milestones, update all cross-references (dependencies, "Task N" mentions in Parallelizable notes, etc.). Ordinals are display positions; renumbering one never means the task itself changed. Report structural task changes in the Scribe Report so the caller can propagate them (see Document Backend Awareness).
-8. **Validate template compliance before returning.** If an edit produces a malformed plan (missing section, broken table, untagged criterion), flag it rather than silently corrupt.
-9. **Do not produce a verdict on the plan.** You are not reviewing; you are transcribing.
-10. **Do not chat.** Output is: updated plan + scribe report. No preamble, no commentary.
+7. **Never reformat or relabel a mermaid diagram.** Milestone labels encode sequencing and mermaid is whitespace-sensitive; when an edit invalidates them, report it rather than guessing which component moved.
+8. **Renumber consistently, but never treat a number as an identity.** When adding/removing tasks or milestones, update all cross-references (dependencies, "Task N" mentions in Parallelizable notes, etc.). Ordinals are display positions; renumbering one never means the task itself changed. Report structural task changes in the Scribe Report so the caller can propagate them (see Document Backend Awareness).
+9. **Validate template compliance before returning.** If an edit produces a malformed plan (missing section, broken table, untagged criterion), flag it rather than silently corrupt.
+10. **Do not produce a verdict on the plan.** You are not reviewing; you are transcribing.
+11. **Do not chat.** Output is: updated plan + scribe report. No preamble, no commentary.
 
 ---
 

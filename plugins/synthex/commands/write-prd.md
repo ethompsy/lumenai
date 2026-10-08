@@ -132,7 +132,7 @@ This is where `--from` gets taught — at the moment it is relevant, rather than
 
 ### 5. Establish the Why
 
-Discovery settles why this exists, for whom, what is changing, what is out of scope, and how success is judged. That is the prerequisite for requirements.
+Discovery settles why this exists, for whom, what is out of scope, and how success is judged. That is the prerequisite for requirements.
 
 **Where it lands depends on the backend.** Under `notion` it goes to the **epic page** — the row itself, which is where stakeholders arrive. Under `filesystem` there is no landing page, so it becomes the PRD's opening sections and there is no separate artifact; `--epic-only` is not applicable and should report as much rather than writing a file nobody opens.
 
@@ -148,7 +148,7 @@ Resolve the `epic_page` document type — the epic row itself, not a subpage.
 Launch the **Product Manager** sub-agent to refine the existing content into the standard shape, per `product-manager.md`:
 
 1. Ingest the existing content as a source.
-2. **Map** it onto the six sections and show the user what landed where. The mapping is a claim about their writing; let them check it.
+2. **Map** it onto the five sections and show the user what landed where. The mapping is a claim about their writing; let them check it.
 3. **Ask about gaps** — sections nothing filled.
 4. **Ask about leftovers** — content fitting no section.
 5. Show the result and get approval before writing anything.
@@ -171,7 +171,7 @@ Populate what exists. On a first run the plan does not exist yet, so list it as 
 
 This section is the reason the epic page has a navigation block at all: an epic is skimmed, and a stakeholder once read a detailed-but-stale epic body as the live plan because nothing pointed elsewhere and nothing signalled age. It is also the only volatile content permitted in an epic body, and Synthex owns it — `next-priority` refreshes it at the end of each run.
 
-**Everything else on the epic page must be non-volatile.** No status, no dates, no counts, no tasks, and no milestones beyond the attribution labels inside `What changes` diagrams. If discovery surfaces content of that shape, it belongs in the plan or the work items, and you should say so rather than filing it here.
+**Everything else on the epic page must be non-volatile.** No status, no dates, no counts, no tasks, no milestones. If discovery surfaces content of that shape, it belongs in the plan or the work items, and you should say so rather than filing it here.
 
 **Relocation requires a destination.** Where volatile content already sits on the epic page and exists nowhere else — phases being the common case — do **not** remove it. The plan must first be extended to hold it, and the content confirmed present there. `--epic-only` cannot extend the plan, so when reduction depends on that it must report the required sequence and stop:
 
@@ -179,21 +179,7 @@ This section is the reason the epic page has a navigation block at all: an epic 
 
 Naming an exit without an entrance is prescribed data loss, and it is worse than the silent kind because it looks principled.
 
-#### 5e. Draw the before and after
-
-Discovery has settled what is changing. Render it as two mermaid diagrams so a stakeholder can see the delta instead of reconstructing it from prose — the system **today**, then the system **after this epic**.
-
-Under `notion` these form a `## What changes` section on the epic page, placed directly after the navigation block you just wrote, and before `How we'll know it worked`. Under `filesystem` they become a `### What changes` subsection inside the PRD's `## 1. Vision & Purpose`. See `product-manager.md` for both templates.
-
-Three rules, all of which exist to stop a confident-looking fabrication:
-
-- **The `Today` diagram must be read off something real** — a supplied source, the codebase, or an answer you were given — and an italic basis line records which. Where it cannot be grounded, **ask**. Do not draw a system you have not verified.
-- **The `After this epic` diagram follows decided scope.** Where scope does not determine a component, leave it out rather than inventing one.
-- **Omit the whole section when the initiative does not change system shape.** Content, pricing, and process initiatives often do not. Say so; do not draw something decorative to fill the slot.
-
-**Milestone labels are attribution, never progress.** Label new or changed components with the milestone that delivers them — `Gateway (M1)` — and nothing else. No checkmarks, dates, counts, percentages, or "in progress": those are status, and status on a landing page is the staleness failure this format was built against. On a first run no plan exists yet, so the labels are simply absent; `write-implementation-plan` adds them once phasing is decided.
-
-#### 5f. Lint and write
+#### 5e. Lint and write
 
 Invoke **prd-linter** with `document: "epic_page"`, the draft, and `prior_content` when refining. Resolve every CRITICAL — including any content the refinement lost.
 
@@ -214,7 +200,7 @@ Do **not** re-ask what discovery already answered. Re-interviewing settled groun
 
 ### 7. Draft the PRD
 
-The PM produces the PRD per the shape in `product-manager.md` that matches the backend. Under `notion`: an `**Epic:**` link, then Target Users, Functional Requirements, Non-Functional Requirements, Assumptions & Constraints, Open Questions, Source Map. Under `filesystem`: the self-contained shape, which keeps Vision, Out of Scope, and Success Metrics.
+The PM produces the PRD per the shape in `product-manager.md` that matches the backend. Under `notion`: an `**Epic:**` link, then Target Users, Current and Target State, Functional Requirements, Non-Functional Requirements, Assumptions & Constraints, Open Questions, Source Map. Under `filesystem`: the self-contained shape, which keeps Vision, Out of Scope, and Success Metrics.
 
 Under `notion` it does **not** restate the vision, the strategic scope boundary, or the success measures — those live on the epic page, and a second copy only creates something that can disagree with it. Detailed personas stay in the PRD under both shapes.
 
@@ -228,6 +214,21 @@ Every functional and non-functional requirement carries exactly one tag and a `*
 | `[A]` | Assumed — states the reasoning |
 
 Unanswered questions go to **Open Questions**, never into an invented requirement.
+
+#### Draw the current and target state
+
+`Current and Target State` carries two mermaid diagrams — the system **today**, then the system **once delivered** — so a reader sees the change instead of reconstructing it from prose. This is the norm under both backends; it has nothing to do with Notion.
+
+Three rules, all of which exist to stop a confident-looking fabrication:
+
+- **The `Today` diagram must be read off something real** — a supplied source, the codebase, or an answer you were given — and an italic basis line records which. Where it cannot be grounded, **ask**. Do not draw a system you have not verified.
+- **The `Once delivered` diagram follows decided scope.** Where scope does not determine a component, leave it out rather than inventing one.
+- **Omit the section entirely when the work changes no system shape.** Content, pricing, and process work often does not. Say so; do not draw something decorative to fill the slot.
+
+**No milestones.** Sequencing is the implementation plan's question, and the plan carries its own `Target State by Milestone` diagram derived from this one. Labelling milestones here would put sequencing in a document that is not rewritten when the work is re-phased — stale the first time anyone reorders a milestone.
+
+**Quote node labels containing parentheses**: `G["Gateway (new)"]`, never `G[Gateway (new)]`. Mermaid rejects unquoted parens and renders nothing at all.
+
 
 ### 8. Lint the PRD
 

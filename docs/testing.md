@@ -121,7 +121,7 @@ Behavioral tests invoke each agent **once per fixture** via `claude -p`, cache t
 | TF-B10 | Agent is advisory-only (never blocks) | `not-icontains` for "blocking this", "refusing to", "cannot allow" |
 | SR-B1 | Every finding has a CWE reference | `regex: "CWE-\\d+"` |
 | SR-B6 | SQL injection remediation recommends parameterized queries | `icontains: "parameterized"` |
-| PM-B1 | Brief input leads to questions, NOT an auto-generated PRD | JS checks `count("?") >= 2` AND absence of `## 3. Functional Requirements` |
+| PM-B1 | Brief input leads to questions, NOT an auto-generated PRD | JS checks `count("?") >= 2` AND absence of a `Functional Requirements` section (matched by name — the two PRD shapes number sections differently) |
 | PM-B3 | Questions come in batches of 3-7 | JS counts question marks in first response |
 
 ### Layer 3: Semantic Evaluation

@@ -74,23 +74,15 @@ You lint two document types. Which rubric applies is determined by the `document
 | The summary-not-the-plan disclaimer present, verbatim | HIGH | It names the exact wrong inference; paraphrase dilutes it |
 | Sections appear in the standard order | MEDIUM | The format is standardized so any reader knows where to look |
 | `*Maintained by Synthex*` marker present | MEDIUM | Tells a human the block is machine-owned |
-| No section beyond the standard five plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
-| `## What changes` present | MEDIUM | A reader sees a change far faster than they read one. MEDIUM, not HIGH, because some initiatives genuinely change no system shape — a check that blocked would push toward drawing something decorative |
-| When present: both a **today** and an **after** diagram | HIGH | The value is the delta; a target state alone leaves the reader to reconstruct the present from memory |
-| When present: each diagram is a fenced ```mermaid block | HIGH | Anything else renders as literal text in Notion and on GitHub |
-| When present: the today diagram carries an italic basis line | HIGH | It is a claim about a system that already exists, and an ungrounded one is the fabrication this rubric exists to catch |
-| `## What changes` sits after `## Where the detail lives` and before `## How we'll know it worked` | MEDIUM | Diagrams stop a skim, so they must not precede the navigation block |
+| No section beyond the standard four plus `Additional context` | MEDIUM | Drift from the standard format defeats its purpose |
 
 **Volatile content outside the navigation block:**
 
 | Check | Severity | Rationale |
 |-------|----------|-----------|
 | No status, date, count, task, or milestone outside `## Where the detail lives` | **CRITICAL** | An epic body is skimmed. Volatile content there ages into a confident-looking lie, which is precisely how a stale epic once got read as the live plan. |
-| No progress marker on a `What changes` diagram label — no checkmark, date, count, percentage, or "in progress" | **CRITICAL** | Same failure, same severity. Attribution is exempt; progress is not |
 
 Flag a violation with the offending text quoted and the artifact it belongs in — the plan for anything milestone- or task-shaped, the work items for anything status-shaped. Do not move it yourself; report it.
-
-**One exemption, and only one.** A milestone label inside a `What changes` diagram — `Gateway (M1)` — records *which* milestone delivers a component. That is attribution: it describes the sequencing decision, changes only when the plan is re-phased, and is maintained by `write-implementation-plan`. It is not a violation, and flagging it is a false positive. `Gateway (M1 ✅ shipped)` **is** a violation, because it states progress. The test is whether the label would go stale on its own: attribution will not, progress will.
 
 **When the epic page was refined from pre-existing content**, one check outranks the rest:
 
@@ -107,14 +99,22 @@ Compare against the prior content supplied in `prior_content`. When it is absent
 | `# Product Requirements Document:` header present | HIGH | Template violation |
 | When `epic_page_present`: `**Epic:**` reference present | HIGH | Under that shape the PRD is deliberately not self-contained; without the link a reader cannot reach the why |
 | `**Provenance:**` legend present | MEDIUM | A reader needs the tag key |
-| `## 1. Functional Requirements` present with at least one requirement | CRITICAL | PRD has no content |
-| `## 2. Non-Functional Requirements` present | HIGH | NFRs shape architecture; silence here surfaces during implementation |
-| `## 3. Assumptions & Constraints` present | MEDIUM | Assumptions belong stated, not embedded in requirements |
-| `## 4. Open Questions` present | MEDIUM | Where unknowns go instead of being invented |
-| `## 5. Source Map` present when `sources` were supplied | HIGH | Supplied inputs must be accounted for |
+| A `Functional Requirements` section present with at least one requirement | CRITICAL | PRD has no content |
+| A `Non-Functional Requirements` section present | HIGH | NFRs shape architecture; silence here surfaces during implementation |
+| An `Assumptions & Constraints` section present | MEDIUM | Assumptions belong stated, not embedded in requirements |
+| An `Open Questions` section present | MEDIUM | Where unknowns go instead of being invented |
+| A `Source Map` section present when `sources` were supplied | HIGH | Supplied inputs must be accounted for |
+| Section numbers run contiguously from 1 with no gaps or repeats | MEDIUM | Downstream prose cites sections by number |
+| A `Current and Target State` section present | MEDIUM | A reader sees a change far faster than they read one. MEDIUM, not HIGH, because some work changes no system shape — a check that blocked would push toward drawing something decorative |
+| When present: both a **today** and an **once delivered** diagram | HIGH | The value is the delta; a target state alone leaves the reader to reconstruct the present from memory |
+| When present: each diagram is a fenced ```mermaid block | HIGH | Anything else renders as literal text in Notion and on GitHub |
+| When present: the today diagram carries an italic basis line | HIGH | It is a claim about a system that already exists, and an ungrounded one is the fabrication this rubric exists to catch |
+| When present: **no milestone labels** | HIGH | Sequencing is the implementation plan's, and it re-phases without anything touching the PRD |
 | When `epic_page_present`: no Vision, Out of Scope, or Success Metrics section | MEDIUM | Those live on the epic page; a second copy can disagree with it |
 | When `epic_page_present` is false: Vision, Out of Scope, and Success Metrics all present | HIGH | Without an epic page the PRD is the only home for the why, and a PRD missing it is a feature list |
 | `## Target Users / Personas` present under **either** shape | HIGH | Detailed personas are requirements context and stay in the PRD regardless of backend |
+
+**Match sections by name, not by number.** The two PRD shapes carry different numbering — the filesystem shape keeps Vision, Out of Scope, and Success Metrics that the Notion shape moves to the epic page — so the same section sits at a different ordinal in each. Checking `## 4. Functional Requirements` would pass one shape and fail the other, and would break again the next time a section is inserted. Check for the name; let the contiguity rule carry the numbering.
 
 ### Requirement-Level Checks
 
@@ -137,7 +137,7 @@ For every `#### FR-` and every non-functional requirement:
 |-------|----------|-----------|
 | No `[A]` tag remains, under the default blocking policy | **CRITICAL** | An unconfirmed assumption presented as a requirement is the failure mode this whole process exists to prevent |
 | Every `[A]` states its reasoning | HIGH | An assumption without reasoning cannot be evaluated or confirmed |
-| `## 7. Assumptions & Constraints` lists anything tagged `[A]` | MEDIUM | Assumptions should be findable in one place |
+| The `Assumptions & Constraints` section lists anything tagged `[A]` | MEDIUM | Assumptions should be findable in one place |
 
 When `assumption_policy` is `warn`, downgrade the first check from CRITICAL to MEDIUM and say in your report that the document ships with acknowledged assumptions. Never downgrade it silently, and never downgrade the other two.
 
@@ -176,7 +176,7 @@ When `assumption_policy` is `warn`, downgrade the first check from CRITICAL to M
 - **[FR-7]** Tagged `[A]` with no confirmation. Assumption: "users will accept a 30-day retention window." Confirm with the user, ground it in a source, or move it to Open Questions.
 
 ### HIGH
-- **Section 5 (Out of Scope)** is present but empty.
+- **Out of Scope** is present but empty.
 
 ### MEDIUM
 - ...

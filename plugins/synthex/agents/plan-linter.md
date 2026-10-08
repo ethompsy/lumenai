@@ -50,6 +50,10 @@ Every draft implementation plan must satisfy these checks. Each violation is a f
 | `## Decisions` section present | HIGH | Records planning rationale |
 | `## Open Questions` section present | HIGH | Tracks unresolved items |
 | At least one `## Phase` section | CRITICAL | Plan has no content |
+| When a `## Target State by Milestone` section is present: it is a fenced ```mermaid block | HIGH | Anything else renders as literal text |
+| When present: every milestone label names a milestone that exists in the plan | HIGH | A label pointing at a merged or deleted milestone is worse than no label — it looks authoritative |
+| When present: no progress marker on any label — no checkmark, date, count, or percentage | HIGH | Status lives in the task tables; a second copy is a second thing to be wrong |
+| When present: node labels containing parentheses are quoted | HIGH | Mermaid rejects unquoted parens and renders nothing at all |
 | Each phase has a "Delivers X Value" in its name | MEDIUM | Enforces incremental-value framing |
 
 #### On the `**Epic:**` line

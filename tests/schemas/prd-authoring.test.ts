@@ -30,8 +30,6 @@ describe('PRD authoring pipeline', () => {
   let pm: string;
   let assembler: string;
   let init: string;
-  let plan: string;
-  let docStore: string;
   let cfg: any;
   let cfgText: string;
 
@@ -41,8 +39,6 @@ describe('PRD authoring pipeline', () => {
     pm = read('agents/product-manager.md');
     assembler = read('agents/context-bundle-assembler.md');
     init = read('commands/init.md');
-    plan = read('commands/write-implementation-plan.md');
-    docStore = read('agents/notion-document-store.md');
     cfg = await loadDefaultsYaml();
     cfgText = loadDefaultsYamlText();
   });
@@ -350,8 +346,10 @@ describe('PRD authoring pipeline', () => {
       expect(pm).toMatch(/\*\*Provenance:\*\*/);
       expect(pm).toMatch(/#### FR-\[ID\]: \[Requirement Title\] `\[S\]`/);
       expect(pm).toMatch(/\*\*Source:\*\*/);
-      expect(pm).toMatch(/## 9\. Source Map/);
-      expect(pm).toMatch(/## 8\. Open Questions/);
+      // Matched by name: the two PRD shapes number sections differently, and
+      // inserting a section renumbers both.
+      expect(pm).toMatch(/^## \d+\. Source Map$/m);
+      expect(pm).toMatch(/^## \d+\. Open Questions$/m);
       expect(pm).toMatch(/\*\*Epic:\*\*/);
     });
   });
@@ -502,156 +500,6 @@ describe('PRD authoring pipeline', () => {
         );
       }
       expect(pm).toMatch(/Detail read as freshness/);
-    });
-  });
-
-  describe('The epic carries before/after diagrams', () => {
-    it('the epic template holds a What changes section', () => {
-      expect(pm).toMatch(/^## What changes$/m);
-    });
-
-    it('holds two mermaid diagrams, today and after — the delta is the point', () => {
-      const sec = pm.slice(pm.indexOf('## What changes'), pm.indexOf("## How we'll know it worked"));
-      expect(sec).toMatch(/\*\*Today\*\*/);
-      expect(sec).toMatch(/\*\*After this epic\*\*/);
-      // Two fenced mermaid blocks, not one: a target state alone makes the
-      // reader reconstruct the present from memory.
-      expect(sec.match(/```mermaid/g) ?? []).toHaveLength(2);
-    });
-
-    it('sits after the navigation block so it cannot stop a skim first', () => {
-      const nav = pm.indexOf('## Where the detail lives');
-      const diagrams = pm.indexOf('## What changes');
-      const metrics = pm.indexOf("## How we'll know it worked");
-      expect(nav).toBeGreaterThan(-1);
-      expect(diagrams).toBeGreaterThan(nav);
-      expect(diagrams).toBeLessThan(metrics);
-    });
-
-    it('distinguishes milestone attribution from progress', () => {
-      expect(pm).toMatch(/\*\*Attribution\*\*/);
-      expect(pm).toMatch(/\*\*Progress\*\*/);
-      expect(pm).toMatch(/Gateway \(M1\)` is fine and `Gateway \(M1 ✅ shipped\)` is not/);
-    });
-
-    it('does not contradict the no-volatile-content rule it sits beside', () => {
-      // The exception has to be named where the blanket rule is stated, or the
-      // file tells an agent two different things.
-      const sec = pm.slice(pm.indexOf('### Phases and other volatile content'));
-      expect(sec).toMatch(/sole exception is the milestone \*attribution\*/);
-      expect(sec).toMatch(/a phase schedule is still out of bounds/);
-    });
-
-    it('requires the today diagram to be grounded, not drawn', () => {
-      expect(pm).toMatch(/\*\*A diagram must be earned\.\*\*/);
-      expect(pm).toMatch(/Where it cannot be grounded, ask; do not draw/);
-      expect(pm).toMatch(/A fabricated architecture diagram is worse than no diagram/);
-    });
-
-    it('permits omission when the initiative changes no system shape', () => {
-      // A hard requirement here would push toward decorative diagrams.
-      expect(pm).toMatch(/\*\*Omit the section when the initiative does not change system shape\.\*\*/);
-      expect(linter).toMatch(/\| `## What changes` present \| MEDIUM \|/);
-    });
-
-    it('write-prd has a step that draws them', () => {
-      expect(cmd).toMatch(/^#### 5e\. Draw the before and after$/m);
-      expect(cmd).toMatch(/must be read off something real/);
-      expect(cmd).toMatch(/\*\*Milestone labels are attribution, never progress\.\*\*/);
-    });
-
-    it('write-prd sub-steps stay contiguous after the insertion', () => {
-      const labels = [...cmd.matchAll(/^#### 5([a-z])\./gm)].map((m) => m[1]);
-      expect(labels).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
-    });
-
-    it('write-implementation-plan owns the milestone labels, since it owns phasing', () => {
-      expect(plan).toMatch(/^### 8\.5\. Refresh the Epic's Milestone Attribution \(Notion only\)$/m);
-      expect(plan).toMatch(/\*\*Never write progress into these labels\.\*\*/);
-      expect(plan).toMatch(/`epic_page` \(\*\*patch\*\*, Notion only/);
-    });
-
-    it('write-implementation-plan refuses to invent a diagram from a plan alone', () => {
-      const step = plan.slice(plan.indexOf('### 8.5.'), plan.indexOf('### 9. Update Project Files'));
-      expect(step).toMatch(/do nothing\. Do not create one/);
-      expect(step).toMatch(/drawing one from a plan alone is the fabrication/);
-    });
-
-    it('next-priority leaves the diagrams alone, which is what keeps them cheap', () => {
-      expect(init).toBeTruthy();
-      const np = read('commands/next-priority.md');
-      expect(np).toMatch(/\*\*Do not touch the epic's `## What changes` diagrams\.\*\*/);
-      expect(np).toMatch(/would put status back on the landing page/);
-    });
-
-    it('the adapter preserves the fence language tag mermaid rendering needs', () => {
-      expect(docStore).toMatch(/\*\*Fenced code blocks pass through verbatim, language tag included\.\*\*/);
-      expect(docStore).toMatch(/^9\. \*\*Never drop or alter a fenced code block's language tag/m);
-    });
-
-    it('the filesystem PRD gets the diagrams without renumbering its sections', () => {
-      // Nesting under Vision rather than inserting a numbered section: the
-      // renumbering hazard is real and the placement is also more correct.
-      expect(pm).toMatch(/^### What changes$/m);
-      const fsTemplate = pm.slice(
-        pm.indexOf('### Filesystem backend — self-contained'),
-        pm.indexOf('### Notion backend — requirements'),
-      );
-      const nums = [...fsTemplate.matchAll(/^## (\d+)\. /gm)].map((m) => Number(m[1]));
-      expect(nums).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-      expect(fsTemplate.indexOf('### What changes')).toBeGreaterThan(fsTemplate.indexOf('## 1. Vision'));
-      expect(fsTemplate.indexOf('### What changes')).toBeLessThan(fsTemplate.indexOf('## 2. Target Users'));
-    });
-
-    it('no template ships a progress marker an agent could copy', () => {
-      // The templates are the most likely vector for a stray checkmark, since
-      // an agent pattern-matches them. Only the prose contrast may contain one.
-      const epicTemplate = pm.slice(pm.indexOf('## What changes'), pm.indexOf("## How we'll know it worked"));
-      expect(epicTemplate).not.toMatch(/✅|✔|shipped|in progress|complete/i);
-    });
-
-    it('the linter checks diagram wellformedness without requiring a diagram', () => {
-      expect(linter).toMatch(/both a \*\*today\*\* and an \*\*after\*\* diagram \| HIGH \|/);
-      expect(linter).toMatch(/fenced ```mermaid block \| HIGH \|/);
-      expect(linter).toMatch(/italic basis line \| HIGH \|/);
-      expect(linter).toMatch(/No progress marker on a `What changes` diagram label[^|]*\| \*\*CRITICAL\*\* \|/);
-      expect(linter).toMatch(/\*\*One exemption, and only one\.\*\*/);
-      expect(linter).toMatch(/flagging it is a false positive/);
-    });
-
-    it('the standard section set grew to admit it', () => {
-      expect(linter).toMatch(/No section beyond the standard five plus `Additional context`/);
-      expect(cmd).toMatch(/\*\*Map\*\* it onto the six sections/);
-    });
-
-    it('warns that milestone labels must be quoted, which mermaid enforces', () => {
-      // Verified against the mermaid parser: `G[Gateway (M1)]` is a syntax
-      // error and renders nothing, so adding attribution to a bare label
-      // without adding quotes silently destroys the diagram.
-      expect(pm).toMatch(/quotes in `"Gateway \(M1\)"` are load-bearing/);
-      expect(plan).toMatch(/\*\*Quote any label you add a milestone to\.\*\*/);
-      expect(plan).toMatch(/`G\[Gateway \(M1\)\]` is a syntax error/);
-    });
-
-    it('the epic template keeps its code fences balanced', () => {
-      // The template is a fenced markdown block containing fenced mermaid
-      // blocks. Adding prose inside it splits the outer fence, which reads as
-      // two templates with commentary between them.
-      const sec = pm.slice(
-        pm.indexOf('## Epic Page Structure'),
-        pm.indexOf('### Why the navigation block'),
-      );
-      expect(sec.match(/```markdown/g) ?? []).toHaveLength(1);
-      expect(sec.match(/```mermaid/g) ?? []).toHaveLength(2);
-      // 1 markdown open + 2 mermaid open + 2 mermaid close + 1 markdown close
-      expect(sec.match(/```/g) ?? []).toHaveLength(6);
-    });
-
-    it('names the same section identically everywhere it appears', () => {
-      for (const f of [pm, cmd, linter, plan, read('commands/next-priority.md')]) {
-        expect(f).toMatch(/What changes/);
-        expect(f).not.toMatch(/## (?:Before and after|System shape|What's changing)/);
-      }
     });
   });
 

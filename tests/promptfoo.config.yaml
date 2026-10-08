@@ -277,8 +277,10 @@ tests:
         value: |
           // Must ask questions, NOT produce a complete PRD
           const hasQuestions = (output.match(/\?/g) || []).length >= 2;
-          const hasFullPRD = output.includes('## 3. Functional Requirements') ||
-                            output.includes('## 4. Non-Functional');
+          // Match by section name, not number: the two PRD shapes number
+          // their sections differently, and inserting a section renumbers both.
+          const hasFullPRD = /^#+\s*(?:\d+\.\s*)?Functional Requirements/m.test(output) ||
+                            /^#+\s*(?:\d+\.\s*)?Non-Functional/m.test(output);
           return {
             pass: hasQuestions && !hasFullPRD,
             reason: hasQuestions
