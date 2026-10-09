@@ -43,8 +43,11 @@ You are never user-facing. You run exactly once per draft; you are not re-invoke
   prior_content:  string  (optional) — for an epic page refined from existing
                                        content: the original, so nothing lost in
                                        the reshape goes unnoticed
-  sources:        array   (optional) — paths/URLs supplied at execution time, for
-                                       checking that [S] citations point at real inputs
+  sources:        array   (optional) — the assembler's manifest entries for the
+                                       material supplied at execution time, each
+                                       { path, summarized, status }. Used to check
+                                       that [S] citations point at real inputs, and
+                                       that they point at inputs actually read.
   assumption_policy: string (optional) — "blocking" (default) | "warn"
 }
 ```
@@ -130,6 +133,9 @@ For every `#### FR-` and every non-functional requirement:
 | Has acceptance criteria | HIGH | A requirement nobody can check is not a requirement |
 | Acceptance criteria are specific, not "works correctly" | HIGH | Unfalsifiable criteria pass trivially |
 | Requirement has a stable `FR-<id>` | MEDIUM | Downstream plans reference these |
+| No `FR-<id>` appears twice | HIGH | Downstream plans cite ids; a duplicate is also the observable symptom of a source being ingested twice |
+| `[S]` does not cite a source whose manifest `status` is `unreadable` | HIGH | A citation is a claim the document was read. Citing one nobody could open is a fabrication with a footnote |
+| `[S]` citing a source marked `summarized: true` carries a verbatim excerpt | HIGH | An oversized document is summarized before the author sees it, so a remembered location satisfies the citation check while pointing at nothing |
 
 ### Assumption Checks
 
@@ -146,8 +152,11 @@ When `assumption_policy` is `warn`, downgrade the first check from CRITICAL to M
 | Check | Severity | Rationale |
 |-------|----------|-----------|
 | Every supplied source appears in the Source Map | MEDIUM | A source that contributed nothing is worth knowing about |
-| No Source Map entry cites a document not in `sources` | HIGH | Indicates a fabricated citation |
+| No Source Map entry cites a document not in `sources`, **when its `Contributed` cell is filled** | HIGH | Indicates a fabricated citation |
+| Every link in the PRD body is accounted for — a Source Map row, a `**Source:**` line, or the `**Epic:**` link | MEDIUM | Unaccounted-for source material. This is an accounting check, not a judgement about what the link is |
 | Out of Scope does not contradict a functional requirement | HIGH | The document argues with itself |
+
+**A `pending` cell is valid, not a defect.** The Source Map's `Contributed` column is a closed vocabulary: `pending` (or an empty cell) means a human queued that source and it has not been ingested yet; `none`, `declined`, `unreadable — <reason>`, and `self-reference — not ingested` are outcomes Synthex writes. A `pending` row is a standing instruction to `/synthex:refine-requirements`, so it is **not** a fabricated citation and **not** an incomplete table. Never raise it as a finding, and never suggest filling or removing it.
 | Success metrics relate to the stated vision | MEDIUM | Metrics measuring something else are decoration |
 
 ---
@@ -187,6 +196,7 @@ When `assumption_policy` is `warn`, downgrade the first check from CRITICAL to M
 |----------|----------|---------------|
 | notes/kickoff.md | FR-1, FR-3, FR-9 | yes |
 | research/interviews.md | — | yes (no contribution) |
+| https://granola.ai/…/oct-8-sync | — | pending — awaiting ingest |
 ```
 
 The provenance summary goes first because it is the number a reader most needs. A PRD that is 70% `[A]` should be obvious before anyone reads a single finding.

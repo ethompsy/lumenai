@@ -67,12 +67,18 @@ Otherwise branch on what exists:
 | present | absent | Confirm the why still holds, then the PRD |
 | either | **present** | Ask, below |
 
-When a PRD already exists, do **not** overwrite it. Ask via `AskUserQuestion`:
+**When `--from` was supplied and a PRD already exists, this is an amendment, not a new document.** Do not ask and do not discard the flag — report and hand off, carrying the sources:
+
+> `A PRD already exists at docs/reqs/main.md, so this is an amendment rather than a new document. Handing off to /synthex:refine-requirements --from notes/oct-8-sync.md`
+
+This command creates; `/synthex:refine-requirements` folds new material into what exists. Keeping that split is why `write-prd` has no amend mode.
+
+Otherwise, do **not** overwrite it. Ask via `AskUserQuestion`:
 
 > **This project already has a PRD.**
 >
 > 1. **Refresh the epic page** — re-read it and bring it back into standard shape, including its `Where the detail lives` block. Leaves the PRD alone. Use this when the epic has drifted or was never standardized. Notion only.
-> 2. **Refine the PRD** — hand to `/synthex:refine-requirements`, which reviews and improves an existing PRD.
+> 2. **Refine the PRD** — hand to `/synthex:refine-requirements`, which reviews and improves an existing PRD, and is also where new source material gets folded in. Pass any `--from` arguments along.
 > 3. **Write a sub-PRD** — a separate initiative at `docs/reqs/<initiative-name>.md`, which may or may not tie back to the main PRD.
 > 4. **Replace the PRD** — discard it and author a new one. Requires explicit confirmation.
 

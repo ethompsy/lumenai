@@ -138,6 +138,8 @@ Read the PRD at `@{requirements_path}` thoroughly. Understand:
 - What is explicitly out of scope
 - Success metrics
 
+**If the PRD's Source Map holds a row whose `Contributed` cell reads `pending`**, name it and say that `/synthex:refine-requirements` folds pending sources in — planning from a PRD that is knowingly missing information is worth one sentence of warning. Do not ingest it here; this command has no source-ingestion path and should not grow one.
+
 ### 3. Gather Technical Context
 
 Read available technical specifications and project context:
